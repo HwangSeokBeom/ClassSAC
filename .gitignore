@@ -94,3 +94,6 @@ iOSInjectionProject/
 **/Config/
 Config/
 ClassSAC/Config/
+
+ClassSAC/Config/Secrets.swift
+Secrets.swift
