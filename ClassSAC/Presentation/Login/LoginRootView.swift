@@ -22,6 +22,8 @@ final class LoginRootView: BaseRootView {
     }()
 
     private let formContainerView = UIView()
+    private let emailHeaderRowView = UIView()
+    private let passwordHeaderRowView = UIView()
 
     private let emailFieldTitleLabel: UILabel = {
         let label = UILabel()
@@ -36,6 +38,24 @@ final class LoginRootView: BaseRootView {
         label.text = "비밀번호"
         label.textColor = AppColor.textPrimary
         label.font = AppFont.label.font
+        return label
+    }()
+
+    let emailStatusLabel: UILabel = {
+        let label = UILabel()
+        label.font = AppFont.caption.font
+        label.textColor = AppColor.accentPrimary
+        label.textAlignment = .right
+        label.isHidden = true
+        return label
+    }()
+
+    let passwordStatusLabel: UILabel = {
+        let label = UILabel()
+        label.font = AppFont.caption.font
+        label.textColor = AppColor.accentPrimary
+        label.textAlignment = .right
+        label.isHidden = true
         return label
     }()
 
@@ -112,8 +132,18 @@ final class LoginRootView: BaseRootView {
 
         [
             emailFieldTitleLabel,
-            emailIconTextFieldView,
+            emailStatusLabel
+        ].forEach { emailHeaderRowView.addSubview($0) }
+
+        [
             passwordFieldTitleLabel,
+            passwordStatusLabel
+        ].forEach { passwordHeaderRowView.addSubview($0) }
+
+        [
+            emailHeaderRowView,
+            emailIconTextFieldView,
+            passwordHeaderRowView,
             passwordIconTextFieldView,
             loginActionButton,
             signupPromptLabel,
@@ -131,14 +161,17 @@ final class LoginRootView: BaseRootView {
 
         loginActionButton.addTarget(self, action: #selector(didTapLoginActionButton), for: .touchUpInside)
         signupTapOverlayButton.addTarget(self, action: #selector(didTapSignupTapOverlayButton), for: .touchUpInside)
-    }
 
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
+        emailIconTextFieldView.setReturnKeyType(.next)
+        passwordIconTextFieldView.setReturnKeyType(.done)
 
-        if previousTraitCollection?.horizontalSizeClass != traitCollection.horizontalSizeClass {
-            applyResponsiveLayoutConstraints()
-            layoutIfNeeded()
+        if #available(iOS 17.0, *) {
+            registerForTraitChanges([UITraitHorizontalSizeClass.self]) { [weak self] (view: Self, _) in
+                guard let self else { return }
+                self.applyResponsiveLayoutConstraints()
+                self.setNeedsLayout()
+                self.layoutIfNeeded()
+            }
         }
     }
 
@@ -179,27 +212,48 @@ final class LoginRootView: BaseRootView {
             } else {
                 make.leading.trailing.equalToSuperview().inset(22)
             }
-            
+        }
+
+        emailHeaderRowView.snp.remakeConstraints { make in
+            make.top.equalToSuperview()
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(18)
         }
 
         emailFieldTitleLabel.snp.remakeConstraints { make in
-            make.top.equalToSuperview()
-            make.leading.trailing.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.centerY.equalToSuperview()
+        }
+
+        emailStatusLabel.snp.remakeConstraints { make in
+            make.trailing.equalToSuperview()
+            make.centerY.equalToSuperview()
         }
 
         emailIconTextFieldView.snp.remakeConstraints { make in
-            make.top.equalTo(emailFieldTitleLabel.snp.bottom).offset(8)
+            make.top.equalTo(emailHeaderRowView.snp.bottom).offset(8)
             make.leading.trailing.equalToSuperview()
             make.height.equalTo(48)
         }
 
-        passwordFieldTitleLabel.snp.remakeConstraints { make in
+        passwordHeaderRowView.snp.remakeConstraints { make in
             make.top.equalTo(emailIconTextFieldView.snp.bottom).offset(14)
             make.leading.trailing.equalToSuperview()
+            make.height.equalTo(18)
+        }
+
+        passwordFieldTitleLabel.snp.remakeConstraints { make in
+            make.leading.equalToSuperview()
+            make.centerY.equalToSuperview()
+        }
+
+        passwordStatusLabel.snp.remakeConstraints { make in
+            make.trailing.equalToSuperview()
+            make.centerY.equalToSuperview()
         }
 
         passwordIconTextFieldView.snp.remakeConstraints { make in
-            make.top.equalTo(passwordFieldTitleLabel.snp.bottom).offset(8)
+            make.top.equalTo(passwordHeaderRowView.snp.bottom).offset(8)
             make.leading.trailing.equalToSuperview()
             make.height.equalTo(48)
         }
@@ -221,8 +275,13 @@ final class LoginRootView: BaseRootView {
         }
     }
 
+    func setStatus(_ label: UILabel, message: String?) {
+        label.text = message
+        label.isHidden = (message == nil)
+    }
+
     @objc private func didTapLoginActionButton() {
-        onTapLoginButton?(emailIconTextFieldView.text, passwordIconTextFieldView.text)
+        onTapLoginButton?(emailText, passwordText)
     }
 
     @objc private func didTapSignupTapOverlayButton() {

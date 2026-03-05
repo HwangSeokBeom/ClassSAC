@@ -21,9 +21,7 @@ final class IconTextFieldView: BaseRootView {
     private let initialSecureTextEntry: Bool
     private let rightAccessoryType: RightAccessoryType
 
-    var text: String {
-        inputTextField.text ?? ""
-    }
+    var text: String { inputTextField.text ?? "" }
 
     private let textFieldContainerView = UIView()
     private let leftAccessoryIconImageView = UIImageView()
@@ -57,7 +55,6 @@ final class IconTextFieldView: BaseRootView {
     }
 
     override func configureLayout() {
-
         textFieldContainerView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
@@ -82,7 +79,6 @@ final class IconTextFieldView: BaseRootView {
     }
 
     override func configureView() {
-
         textFieldContainerView.backgroundColor = AppColor.bgSurface
         textFieldContainerView.layer.cornerRadius = 12
         textFieldContainerView.layer.borderWidth = 1
@@ -101,14 +97,13 @@ final class IconTextFieldView: BaseRootView {
         inputTextField.autocorrectionType = .no
         inputTextField.spellCheckingType = .no
         inputTextField.isSecureTextEntry = initialSecureTextEntry
-        inputTextField.returnKeyType = .done 
+        inputTextField.returnKeyType = .done
 
         rightAccessoryButton.tintColor = AppColor.textTertiary
 
         switch rightAccessoryType {
         case .none:
             rightAccessoryButton.isHidden = true
-
             inputTextField.snp.remakeConstraints { make in
                 make.leading.equalTo(leftAccessoryIconImageView.snp.trailing).offset(10)
                 make.centerY.equalToSuperview()
@@ -128,6 +123,14 @@ final class IconTextFieldView: BaseRootView {
 
     func setTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
         inputTextField.delegate = delegate
+    }
+
+    func addEditingChangedTarget(_ target: Any?, action: Selector) {
+        inputTextField.addTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setText(_ text: String?) {
+        inputTextField.text = text
     }
 
     func focus() {
