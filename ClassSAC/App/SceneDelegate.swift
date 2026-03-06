@@ -7,12 +7,10 @@
 
 import UIKit
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
-
     private var appFlowCoordinator: AppFlowCoordinator?
-    private lazy var appDIContainer = AppDIContainer()
 
     func scene(
         _ scene: UIScene,
@@ -23,11 +21,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let navigationController = UINavigationController()
         let window = UIWindow(windowScene: windowScene)
-
         window.rootViewController = navigationController
-        self.window = window
         window.makeKeyAndVisible()
 
+        self.window = window
+
+        let appDIContainer = AppDIContainer()
         let appFlowCoordinator = AppFlowCoordinator(
             navigationController: navigationController,
             appDIContainer: appDIContainer

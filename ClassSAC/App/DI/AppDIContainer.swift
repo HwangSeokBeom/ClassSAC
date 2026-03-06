@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 final class AppDIContainer {
 
@@ -22,5 +23,9 @@ final class AppDIContainer {
             accessTokenStore: accessTokenStore,
             appDIContainer: self
         )
+    }
+
+    func makeMainTabBarController() -> MainTabBarController {
+        MainTabBarController()
     }
 }

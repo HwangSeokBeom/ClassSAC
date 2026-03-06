@@ -11,19 +11,26 @@ final class AuthFlowCoordinator {
 
     private let navigationController: UINavigationController
     private let authSceneDIContainer: AuthSceneDIContainer
-    private var onFinish: (() -> Void)?
+    private let onFinish: (() -> Void)?
+    private let onLoginSuccess: (() -> Void)?
 
     init(
         navigationController: UINavigationController,
         authSceneDIContainer: AuthSceneDIContainer,
-        onFinish: (() -> Void)? = nil
+        onFinish: (() -> Void)? = nil,
+        onLoginSuccess: (() -> Void)? = nil
     ) {
         self.navigationController = navigationController
         self.authSceneDIContainer = authSceneDIContainer
         self.onFinish = onFinish
+        self.onLoginSuccess = onLoginSuccess
     }
 
     func start() {
+        showLogin()
+    }
+
+    func showLogin() {
         let loginViewController = authSceneDIContainer.makeLoginViewController(
             authFlowCoordinator: self
         )
@@ -37,7 +44,8 @@ final class AuthFlowCoordinator {
         navigationController.pushViewController(signupViewController, animated: true)
     }
 
-    func showLogin() {
-        navigationController.popViewController(animated: true)
+    func finishAuthFlow() {
+        onLoginSuccess?()
+        onFinish?()
     }
 }

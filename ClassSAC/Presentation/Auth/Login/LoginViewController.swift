@@ -40,8 +40,7 @@ final class LoginViewController: UIViewController {
 
     private func bind() {
         viewModel.onLoginSuccess = { [weak self] _ in
-            // TODO: 화면 연결
-            self?.rootView.dismissKeyboard()
+            self?.authFlowCoordinator?.finishAuthFlow()
         }
 
         viewModel.onLoginFailure = { [weak self] message in

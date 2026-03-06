@@ -31,12 +31,26 @@ final class AppFlowCoordinator {
 
         let authFlowCoordinator = AuthFlowCoordinator(
             navigationController: navigationController,
-            authSceneDIContainer: authSceneDIContainer
-        ) { [weak self] in
-            self?.authFlowCoordinator = nil
-        }
+            authSceneDIContainer: authSceneDIContainer,
+            onFinish: { [weak self] in
+                self?.authFlowCoordinator = nil
+            },
+            onLoginSuccess: { [weak self] in
+                self?.showMainTabBar()
+            }
+        )
 
         self.authFlowCoordinator = authFlowCoordinator
         authFlowCoordinator.start()
+    }
+
+    private func showMainTabBar() {
+        let mainTabBarController = appDIContainer.makeMainTabBarController()
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            window.rootViewController = mainTabBarController
+            window.makeKeyAndVisible()
+        }
     }
 }
