@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RxSwift
 
 final class DefaultJoinUseCase: JoinUseCase {
 
@@ -16,7 +15,17 @@ final class DefaultJoinUseCase: JoinUseCase {
         self.authRepository = authRepository
     }
 
-    func execute(email: String, password: String, nick: String) -> Single<UserSession> {
-        authRepository.join(email: email, password: password, nick: nick)
+    func execute(
+        email: String,
+        password: String,
+        nick: String,
+        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+    ) {
+        authRepository.join(
+            email: email,
+            password: password,
+            nick: nick,
+            completion: completion
+        )
     }
 }

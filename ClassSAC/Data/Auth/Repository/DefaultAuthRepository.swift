@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RxSwift
 
 final class DefaultAuthRepository: AuthRepository {
 
@@ -16,52 +15,43 @@ final class DefaultAuthRepository: AuthRepository {
         self.authRemoteDataSource = authRemoteDataSource
     }
 
-    func join(email: String, password: String, nick: String) -> Single<UserSession> {
-        Single.create { [weak self] single in
-            guard let self else {
-                single(.failure(ClassSACAPIError.deallocated))
-                return Disposables.create()
+    func join(
+        email: String,
+        password: String,
+        nick: String,
+        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+    ) {
+        authRemoteDataSource.join(
+            email: email,
+            password: password,
+            nick: nick
+        ) { result in
+            switch result {
+            case .success(let responseDTO):
+                completion(.success(responseDTO.toEntity()))
+
+            case .failure(let error):
+                completion(.failure(error))
             }
-
-            self.authRemoteDataSource.join(
-                email: email,
-                password: password,
-                nick: nick
-            ) { result in
-                switch result {
-                case .success(let responseDTO):
-                    single(.success(responseDTO.toEntity()))
-
-                case .failure(let error):
-                    single(.failure(error))
-                }
-            }
-
-            return Disposables.create()
         }
     }
 
-    func login(email: String, password: String) -> Single<UserSession> {
-        Single.create { [weak self] single in
-            guard let self else {
-                single(.failure(ClassSACAPIError.deallocated))
-                return Disposables.create()
+    func login(
+        email: String,
+        password: String,
+        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+    ) {
+        authRemoteDataSource.login(
+            email: email,
+            password: password
+        ) { result in
+            switch result {
+            case .success(let responseDTO):
+                completion(.success(responseDTO.toEntity()))
+
+            case .failure(let error):
+                completion(.failure(error))
             }
-
-            self.authRemoteDataSource.login(
-                email: email,
-                password: password
-            ) { result in
-                switch result {
-                case .success(let responseDTO):
-                    single(.success(responseDTO.toEntity()))
-
-                case .failure(let error):
-                    single(.failure(error))
-                }
-            }
-
-            return Disposables.create()
         }
     }
 }

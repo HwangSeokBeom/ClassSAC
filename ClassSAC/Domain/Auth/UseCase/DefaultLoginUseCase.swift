@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RxSwift
 
 final class DefaultLoginUseCase: LoginUseCase {
 
@@ -16,7 +15,15 @@ final class DefaultLoginUseCase: LoginUseCase {
         self.authRepository = authRepository
     }
 
-    func execute(email: String, password: String) -> Single<UserSession> {
-        authRepository.login(email: email, password: password)
+    func execute(
+        email: String,
+        password: String,
+        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+    ) {
+        authRepository.login(
+            email: email,
+            password: password,
+            completion: completion
+        )
     }
 }
