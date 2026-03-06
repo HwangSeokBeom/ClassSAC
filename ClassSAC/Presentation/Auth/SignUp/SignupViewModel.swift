@@ -39,10 +39,7 @@ final class SignupViewModel {
         let trimmedPassword = input.password.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPasswordConfirm = input.passwordConfirm.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let emailMessage = signupFieldMessage(
-            text: trimmedEmail,
-            emptyMessage: "이메일을 입력해주세요."
-        )
+        let emailMessage = emailMessage(trimmedEmail)
 
         let nickMessage = signupFieldMessage(
             text: trimmedNick,
@@ -78,6 +75,19 @@ final class SignupViewModel {
             passwordConfirmMessage: passwordConfirmMessage,
             isSignupButtonEnabled: isSignupButtonEnabled
         )
+    }
+    
+    private func emailMessage(_ email: String) -> String? {
+
+        if email.isEmpty {
+            return "이메일을 입력해주세요."
+        }
+
+        if !AuthValidationPolicy.isValidEmail(email) {
+            return AuthValidationPolicy.emailGuideMessage
+        }
+
+        return nil
     }
 
     func didTapSignupButton(input: Input) {

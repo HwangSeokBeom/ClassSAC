@@ -33,10 +33,7 @@ final class LoginViewModel {
         let trimmedEmail = input.email.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPassword = input.password.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let emailMessage = loginFieldMessage(
-            text: trimmedEmail,
-            emptyMessage: "이메일을 입력해주세요."
-        )
+        let emailMessage = emailMessage(trimmedEmail)
 
         let passwordMessage = loginFieldMessage(
             text: trimmedPassword,
@@ -50,6 +47,19 @@ final class LoginViewModel {
             passwordMessage: passwordMessage,
             isLoginButtonEnabled: isLoginButtonEnabled
         )
+    }
+    
+    private func emailMessage(_ email: String) -> String? {
+
+        if email.isEmpty {
+            return "이메일을 입력해주세요."
+        }
+
+        if !AuthValidationPolicy.isValidEmail(email) {
+            return AuthValidationPolicy.emailGuideMessage
+        }
+
+        return nil
     }
 
     func didTapLoginButton(input: Input) {

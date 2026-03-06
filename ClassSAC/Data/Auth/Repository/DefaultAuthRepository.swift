@@ -31,6 +31,7 @@ final class DefaultAuthRepository: AuthRepository {
                 completion(.success(responseDTO.toEntity()))
 
             case .failure(let error):
+                print("🔥 Join API Error:", error.debugMessage)
                 completion(.failure(self.mapAuthError(error)))
             }
         }
