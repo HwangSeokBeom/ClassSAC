@@ -134,43 +134,35 @@ final class SignupViewController: UIViewController {
         view.layoutIfNeeded()
     }
 
-    @objc
-    private func emailTextDidChange() {
+    @objc private func emailTextDidChange() {
         updateSignupValidationUI()
     }
 
-    @objc
-    private func nicknameTextDidChange() {
+    @objc private func nicknameTextDidChange() {
         updateSignupValidationUI()
     }
 
-    @objc
-    private func passwordTextDidChange() {
+    @objc private func passwordTextDidChange() {
         updateSignupValidationUI()
     }
 
-    @objc
-    private func passwordConfirmTextDidChange() {
+    @objc private func passwordConfirmTextDidChange() {
         updateSignupValidationUI()
     }
 
-    @objc
-    private func emailTextFieldDidReturn() {
+    @objc private func emailTextFieldDidReturn() {
         signupRootView.focusNicknameTextField()
     }
 
-    @objc
-    private func nicknameTextFieldDidReturn() {
+    @objc private func nicknameTextFieldDidReturn() {
         signupRootView.focusPasswordTextField()
     }
 
-    @objc
-    private func passwordTextFieldDidReturn() {
+    @objc private func passwordTextFieldDidReturn() {
         signupRootView.focusPasswordConfirmTextField()
     }
 
-    @objc
-    private func passwordConfirmTextFieldDidReturn() {
+    @objc private func passwordConfirmTextFieldDidReturn() {
         signupRootView.dismissKeyboard()
 
         let input = SignupViewModel.Input(

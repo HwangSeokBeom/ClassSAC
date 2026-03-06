@@ -91,23 +91,19 @@ final class LoginViewController: UIViewController {
         view.addGestureRecognizer(tapGestureRecognizer)
     }
 
-    @objc
-    private func emailTextDidChange() {
+    @objc private func emailTextDidChange() {
         updateLoginValidationUI()
     }
 
-    @objc
-    private func passwordTextDidChange() {
+    @objc private func passwordTextDidChange() {
         updateLoginValidationUI()
     }
 
-    @objc
-    private func emailTextFieldDidReturn() {
+    @objc private func emailTextFieldDidReturn() {
         rootView.focusPasswordTextField()
     }
 
-    @objc
-    private func passwordTextFieldDidReturn() {
+    @objc private func passwordTextFieldDidReturn() {
         rootView.dismissKeyboard()
 
         let input = LoginViewModel.Input(
@@ -125,8 +121,7 @@ final class LoginViewController: UIViewController {
         viewModel.didTapLoginButton(input: input)
     }
 
-    @objc
-    private func didTapBackgroundView() {
+    @objc private func didTapBackgroundView() {
         rootView.dismissKeyboard()
     }
 
