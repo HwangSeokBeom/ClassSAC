@@ -11,17 +11,30 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    private var appFlowCoordinator: AppFlowCoordinator?
+    private lazy var appDIContainer = AppDIContainer()
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let scene = (scene as? UIWindowScene) else { return }
-        
-        window = UIWindow(windowScene: scene)
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = scene as? UIWindowScene else { return }
 
-        let viewController = LoginViewController()
-        let navigationController = UINavigationController(rootViewController: viewController)
-        
-        window?.rootViewController = navigationController
-        window?.makeKeyAndVisible()
+        let navigationController = UINavigationController()
+        let window = UIWindow(windowScene: windowScene)
+
+        window.rootViewController = navigationController
+        self.window = window
+        window.makeKeyAndVisible()
+
+        let appFlowCoordinator = AppFlowCoordinator(
+            navigationController: navigationController,
+            appDIContainer: appDIContainer
+        )
+
+        self.appFlowCoordinator = appFlowCoordinator
+        appFlowCoordinator.start()
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

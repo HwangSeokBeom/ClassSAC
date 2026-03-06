@@ -21,7 +21,9 @@ final class IconTextFieldView: BaseRootView {
     private let initialSecureTextEntry: Bool
     private let rightAccessoryType: RightAccessoryType
 
-    var text: String { inputTextField.text ?? "" }
+    var text: String {
+        inputTextField.text ?? ""
+    }
 
     private let textFieldContainerView = UIView()
     private let leftAccessoryIconImageView = UIImageView()
@@ -50,8 +52,7 @@ final class IconTextFieldView: BaseRootView {
             leftAccessoryIconImageView,
             inputTextField,
             rightAccessoryButton
-        ]
-        .forEach { textFieldContainerView.addSubview($0) }
+        ].forEach { textFieldContainerView.addSubview($0) }
     }
 
     override func configureLayout() {
@@ -74,7 +75,13 @@ final class IconTextFieldView: BaseRootView {
         inputTextField.snp.makeConstraints { make in
             make.leading.equalTo(leftAccessoryIconImageView.snp.trailing).offset(10)
             make.centerY.equalToSuperview()
-            make.trailing.equalTo(rightAccessoryButton.snp.leading).offset(-8)
+
+            switch rightAccessoryType {
+            case .none:
+                make.trailing.equalToSuperview().inset(12)
+            case .toggleSecure:
+                make.trailing.equalTo(rightAccessoryButton.snp.leading).offset(-8)
+            }
         }
     }
 
@@ -98,21 +105,18 @@ final class IconTextFieldView: BaseRootView {
         inputTextField.spellCheckingType = .no
         inputTextField.isSecureTextEntry = initialSecureTextEntry
         inputTextField.returnKeyType = .done
+        inputTextField.clearButtonMode = .never
 
         rightAccessoryButton.tintColor = AppColor.textTertiary
 
         switch rightAccessoryType {
         case .none:
             rightAccessoryButton.isHidden = true
-            inputTextField.snp.remakeConstraints { make in
-                make.leading.equalTo(leftAccessoryIconImageView.snp.trailing).offset(10)
-                make.centerY.equalToSuperview()
-                make.trailing.equalToSuperview().inset(12)
-            }
 
         case .toggleSecure:
             rightAccessoryButton.isHidden = false
-            rightAccessoryButton.setImage(AppIcon.eyeSlash.image, for: .normal)
+            let iconImage = initialSecureTextEntry ? AppIcon.eyeSlash.image : AppIcon.eye.image
+            rightAccessoryButton.setImage(iconImage, for: .normal)
             rightAccessoryButton.addTarget(self, action: #selector(didTapRightAccessoryButton), for: .touchUpInside)
         }
     }
@@ -125,12 +129,8 @@ final class IconTextFieldView: BaseRootView {
         inputTextField.delegate = delegate
     }
 
-    func addEditingChangedTarget(_ target: Any?, action: Selector) {
-        inputTextField.addTarget(target, action: action, for: .editingChanged)
-    }
-
-    func setText(_ text: String?) {
-        inputTextField.text = text
+    func addTextFieldTarget(_ target: Any?, action: Selector, for controlEvents: UIControl.Event) {
+        inputTextField.addTarget(target, action: action, for: controlEvents)
     }
 
     func focus() {
@@ -141,14 +141,26 @@ final class IconTextFieldView: BaseRootView {
         inputTextField.resignFirstResponder()
     }
 
-    @objc private func didTapRightAccessoryButton() {
+    @objc
+    private func didTapRightAccessoryButton() {
+        let wasFirstResponder = inputTextField.isFirstResponder
+        let currentSelectedTextRange = inputTextField.selectedTextRange
+        let currentText = inputTextField.text
+
         inputTextField.isSecureTextEntry.toggle()
 
         let iconImage = inputTextField.isSecureTextEntry ? AppIcon.eyeSlash.image : AppIcon.eye.image
         rightAccessoryButton.setImage(iconImage, for: .normal)
 
-        let currentText = inputTextField.text
         inputTextField.text = nil
         inputTextField.text = currentText
+
+        if wasFirstResponder {
+            inputTextField.becomeFirstResponder()
+
+            if let currentSelectedTextRange {
+                inputTextField.selectedTextRange = currentSelectedTextRange
+            }
+        }
     }
 }

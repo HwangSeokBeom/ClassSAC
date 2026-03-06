@@ -66,7 +66,7 @@ final class SignupRootView: BaseRootView {
     let passwordStatusLabel: UILabel = SignupRootView.makeStatusLabel()
     let passwordConfirmStatusLabel: UILabel = SignupRootView.makeStatusLabel()
 
-    let emailTextFieldView = IconTextFieldView(
+    private let emailTextFieldView = IconTextFieldView(
         leftIcon: AppIcon.envelope.image,
         placeholderText: "이메일을 입력하세요",
         keyboardType: .emailAddress,
@@ -74,7 +74,7 @@ final class SignupRootView: BaseRootView {
         rightAccessoryType: .none
     )
 
-    let nicknameTextFieldView = IconTextFieldView(
+    private let nicknameTextFieldView = IconTextFieldView(
         leftIcon: AppIcon.person.image,
         placeholderText: "닉네임을 입력하세요",
         keyboardType: .default,
@@ -82,7 +82,7 @@ final class SignupRootView: BaseRootView {
         rightAccessoryType: .none
     )
 
-    let passwordTextFieldView = IconTextFieldView(
+    private let passwordTextFieldView = IconTextFieldView(
         leftIcon: AppIcon.lock.image,
         placeholderText: "비밀번호를 입력하세요",
         keyboardType: .default,
@@ -90,7 +90,7 @@ final class SignupRootView: BaseRootView {
         rightAccessoryType: .toggleSecure
     )
 
-    let passwordConfirmTextFieldView = IconTextFieldView(
+    private let passwordConfirmTextFieldView = IconTextFieldView(
         leftIcon: AppIcon.lock.image,
         placeholderText: "비밀번호를 다시 입력하세요",
         keyboardType: .default,
@@ -127,13 +127,15 @@ final class SignupRootView: BaseRootView {
             ]
         )
 
-        attributedText.append(NSAttributedString(
-            string: actionText,
-            attributes: [
-                .foregroundColor: AppColor.accentPrimary,
-                .font: AppFont.button.font
-            ]
-        ))
+        attributedText.append(
+            NSAttributedString(
+                string: actionText,
+                attributes: [
+                    .foregroundColor: AppColor.accentPrimary,
+                    .font: AppFont.button.font
+                ]
+            )
+        )
 
         label.attributedText = attributedText
         return label
@@ -145,15 +147,24 @@ final class SignupRootView: BaseRootView {
         return button
     }()
 
+    var emailText: String { emailTextFieldView.text }
+    var nickText: String { nicknameTextFieldView.text }
+    var passwordText: String { passwordTextFieldView.text }
+    var passwordConfirmText: String { passwordConfirmTextFieldView.text }
+
     override func configureHierarchy() {
         addSubview(formContainerView)
 
         [
             titleLabel,
-            emailHeaderRowView, emailTextFieldView,
-            nicknameHeaderRowView, nicknameTextFieldView,
-            passwordHeaderRowView, passwordTextFieldView,
-            passwordConfirmHeaderRowView, passwordConfirmTextFieldView,
+            emailHeaderRowView,
+            emailTextFieldView,
+            nicknameHeaderRowView,
+            nicknameTextFieldView,
+            passwordHeaderRowView,
+            passwordTextFieldView,
+            passwordConfirmHeaderRowView,
+            passwordConfirmTextFieldView,
             signupButton,
             loginPromptLabel,
             loginTapOverlayButton
@@ -187,8 +198,7 @@ final class SignupRootView: BaseRootView {
     }
 
     private func applyResponsiveLayoutConstraints() {
-
-        let isRegular = (traitCollection.horizontalSizeClass == .regular)
+        let isRegular = traitCollection.horizontalSizeClass == .regular
         let inlineTitleVisible = !titleLabel.isHidden
 
         formContainerView.snp.remakeConstraints { make in
@@ -198,7 +208,6 @@ final class SignupRootView: BaseRootView {
                 make.trailing.lessThanOrEqualToSuperview().inset(22)
                 make.width.equalToSuperview().multipliedBy(0.72).priority(.high)
                 make.width.lessThanOrEqualTo(720)
-
                 make.top.greaterThanOrEqualTo(safeAreaLayoutGuide).offset(24)
                 make.bottom.lessThanOrEqualTo(safeAreaLayoutGuide).inset(24)
                 make.centerY.equalToSuperview().priority(.low)
@@ -297,6 +306,7 @@ final class SignupRootView: BaseRootView {
             make.leading.equalToSuperview()
             make.centerY.equalToSuperview()
         }
+
         status.snp.remakeConstraints { make in
             make.trailing.equalToSuperview()
             make.centerY.equalToSuperview()
@@ -313,11 +323,77 @@ final class SignupRootView: BaseRootView {
         signupButton.alpha = enabled ? 1.0 : 0.5
     }
 
-    @objc private func didTapSignupButton() {
+    func setEmailEditingTarget(_ target: Any?, action: Selector) {
+        emailTextFieldView.addTextFieldTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setNicknameEditingTarget(_ target: Any?, action: Selector) {
+        nicknameTextFieldView.addTextFieldTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setPasswordEditingTarget(_ target: Any?, action: Selector) {
+        passwordTextFieldView.addTextFieldTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setPasswordConfirmEditingTarget(_ target: Any?, action: Selector) {
+        passwordConfirmTextFieldView.addTextFieldTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setEmailReturnTarget(_ target: Any?, action: Selector) {
+        emailTextFieldView.addTextFieldTarget(target, action: action, for: .editingDidEndOnExit)
+    }
+
+    func setNicknameReturnTarget(_ target: Any?, action: Selector) {
+        nicknameTextFieldView.addTextFieldTarget(target, action: action, for: .editingDidEndOnExit)
+    }
+
+    func setPasswordReturnTarget(_ target: Any?, action: Selector) {
+        passwordTextFieldView.addTextFieldTarget(target, action: action, for: .editingDidEndOnExit)
+    }
+
+    func setPasswordConfirmReturnTarget(_ target: Any?, action: Selector) {
+        passwordConfirmTextFieldView.addTextFieldTarget(target, action: action, for: .editingDidEndOnExit)
+    }
+
+    func setEmailTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
+        emailTextFieldView.setTextFieldDelegate(delegate)
+    }
+
+    func setNicknameTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
+        nicknameTextFieldView.setTextFieldDelegate(delegate)
+    }
+
+    func setPasswordTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
+        passwordTextFieldView.setTextFieldDelegate(delegate)
+    }
+
+    func setPasswordConfirmTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
+        passwordConfirmTextFieldView.setTextFieldDelegate(delegate)
+    }
+
+    func focusNicknameTextField() {
+        nicknameTextFieldView.focus()
+    }
+
+    func focusPasswordTextField() {
+        passwordTextFieldView.focus()
+    }
+
+    func focusPasswordConfirmTextField() {
+        passwordConfirmTextFieldView.focus()
+    }
+
+    func dismissKeyboard() {
+        endEditing(true)
+    }
+
+    @objc
+    private func didTapSignupButton() {
         onTapSignupButton?()
     }
 
-    @objc private func didTapLoginButton() {
+    @objc
+    private func didTapLoginButton() {
         onTapLoginButton?()
     }
 }

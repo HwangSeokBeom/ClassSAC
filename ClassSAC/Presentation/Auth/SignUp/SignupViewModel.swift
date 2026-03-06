@@ -9,6 +9,21 @@ import Foundation
 
 final class SignupViewModel {
 
+    struct Input {
+        let email: String
+        let nick: String
+        let password: String
+        let passwordConfirm: String
+    }
+
+    struct Output {
+        let emailMessage: String?
+        let nickMessage: String?
+        let passwordMessage: String?
+        let passwordConfirmMessage: String?
+        let isSignupButtonEnabled: Bool
+    }
+
     private let joinUseCase: JoinUseCase
 
     var onJoinSuccess: ((UserSession) -> Void)?
@@ -18,15 +33,68 @@ final class SignupViewModel {
         self.joinUseCase = joinUseCase
     }
 
-    func join(email: String, password: String, nick: String) {
+    func transform(input: Input) -> Output {
+        let trimmedEmail = input.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNick = input.nick.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPassword = input.password.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPasswordConfirm = input.passwordConfirm.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let emailMessage = signupFieldMessage(
+            text: trimmedEmail,
+            emptyMessage: "이메일을 입력해주세요."
+        )
+
+        let nickMessage = signupFieldMessage(
+            text: trimmedNick,
+            emptyMessage: "닉네임을 입력해주세요."
+        )
+
+        let passwordMessage = signupFieldMessage(
+            text: trimmedPassword,
+            emptyMessage: "비밀번호를 입력해주세요."
+        )
+
+        let passwordConfirmMessage: String?
+        if trimmedPasswordConfirm.isEmpty {
+            passwordConfirmMessage = "비밀번호 확인을 입력해주세요."
+        } else if !AuthValidationPolicy.isValidLength(trimmedPasswordConfirm) {
+            passwordConfirmMessage = AuthValidationPolicy.lengthGuideMessage
+        } else if trimmedPassword != trimmedPasswordConfirm {
+            passwordConfirmMessage = "비밀번호가 일치하지 않습니다."
+        } else {
+            passwordConfirmMessage = nil
+        }
+
+        let isSignupButtonEnabled =
+            emailMessage == nil &&
+            nickMessage == nil &&
+            passwordMessage == nil &&
+            passwordConfirmMessage == nil
+
+        return Output(
+            emailMessage: emailMessage,
+            nickMessage: nickMessage,
+            passwordMessage: passwordMessage,
+            passwordConfirmMessage: passwordConfirmMessage,
+            isSignupButtonEnabled: isSignupButtonEnabled
+        )
+    }
+
+    func didTapSignupButton(input: Input) {
+        let output = transform(input: input)
+
+        guard output.isSignupButtonEnabled else {
+            return
+        }
+
         joinUseCase.execute(
-            email: email,
-            password: password,
-            nick: nick
+            email: input.email,
+            password: input.password,
+            nick: input.nick
         ) { [weak self] result in
             switch result {
-            case .success(let session):
-                self?.onJoinSuccess?(session)
+            case .success(let userSession):
+                self?.onJoinSuccess?(userSession)
 
             case .failure(let error):
                 self?.onJoinFailure?(error.userMessage)
@@ -34,21 +102,15 @@ final class SignupViewModel {
         }
     }
 
-    func validateSignupInput(
-        email: String,
-        password: String,
-        passwordConfirm: String,
-        nick: String
-    ) -> Bool {
-        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedPasswordConfirm = passwordConfirm.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedNick = nick.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func signupFieldMessage(text: String, emptyMessage: String) -> String? {
+        if text.isEmpty {
+            return emptyMessage
+        }
 
-        return !trimmedEmail.isEmpty &&
-               !trimmedPassword.isEmpty &&
-               !trimmedPasswordConfirm.isEmpty &&
-               !trimmedNick.isEmpty &&
-               trimmedPassword == trimmedPasswordConfirm
+        if !AuthValidationPolicy.isValidLength(text) {
+            return AuthValidationPolicy.lengthGuideMessage
+        }
+
+        return nil
     }
 }

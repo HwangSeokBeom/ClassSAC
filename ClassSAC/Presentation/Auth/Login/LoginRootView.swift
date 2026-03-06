@@ -61,7 +61,7 @@ final class LoginRootView: BaseRootView {
 
     private let emailIconTextFieldView = IconTextFieldView(
         leftIcon: AppIcon.envelope.image,
-        placeholderText: "jack@jack.com",
+        placeholderText: "이메일을 입력하세요",
         keyboardType: .emailAddress,
         isSecureTextEntry: false,
         rightAccessoryType: .none
@@ -69,7 +69,7 @@ final class LoginRootView: BaseRootView {
 
     private let passwordIconTextFieldView = IconTextFieldView(
         leftIcon: AppIcon.lock.image,
-        placeholderText: "123456",
+        placeholderText: "비밀번호를 입력하세요",
         keyboardType: .default,
         isSecureTextEntry: true,
         rightAccessoryType: .toggleSecure
@@ -83,6 +83,8 @@ final class LoginRootView: BaseRootView {
         button.backgroundColor = AppColor.accentPrimary
         button.layer.cornerRadius = 12
         button.clipsToBounds = true
+        button.isEnabled = false
+        button.alpha = 0.5
         return button
     }()
 
@@ -102,13 +104,15 @@ final class LoginRootView: BaseRootView {
             ]
         )
 
-        attributedText.append(NSAttributedString(
-            string: actionText,
-            attributes: [
-                .foregroundColor: AppColor.accentPrimary,
-                .font: AppFont.button.font
-            ]
-        ))
+        attributedText.append(
+            NSAttributedString(
+                string: actionText,
+                attributes: [
+                    .foregroundColor: AppColor.accentPrimary,
+                    .font: AppFont.button.font
+                ]
+            )
+        )
 
         label.attributedText = attributedText
         return label
@@ -127,8 +131,7 @@ final class LoginRootView: BaseRootView {
         [
             heroIllustrationImageView,
             formContainerView
-        ]
-        .forEach { addSubview($0) }
+        ].forEach { addSubview($0) }
 
         [
             emailFieldTitleLabel,
@@ -148,8 +151,7 @@ final class LoginRootView: BaseRootView {
             loginActionButton,
             signupPromptLabel,
             signupTapOverlayButton
-        ]
-        .forEach { formContainerView.addSubview($0) }
+        ].forEach { formContainerView.addSubview($0) }
     }
 
     override func configureLayout() {
@@ -166,7 +168,7 @@ final class LoginRootView: BaseRootView {
         passwordIconTextFieldView.setReturnKeyType(.done)
 
         if #available(iOS 17.0, *) {
-            registerForTraitChanges([UITraitHorizontalSizeClass.self]) { [weak self] (view: Self, _) in
+            registerForTraitChanges([UITraitHorizontalSizeClass.self]) { [weak self] (_: Self, _) in
                 guard let self else { return }
                 self.applyResponsiveLayoutConstraints()
                 self.setNeedsLayout()
@@ -176,7 +178,6 @@ final class LoginRootView: BaseRootView {
     }
 
     private func applyResponsiveLayoutConstraints() {
-
         heroIllustrationImageView.snp.remakeConstraints { make in
             make.centerX.equalToSuperview()
 
@@ -206,7 +207,6 @@ final class LoginRootView: BaseRootView {
                 make.trailing.lessThanOrEqualToSuperview().inset(22)
                 make.width.equalToSuperview().multipliedBy(0.72).priority(.high)
                 make.width.lessThanOrEqualTo(720)
-
                 make.bottom.lessThanOrEqualTo(safeAreaLayoutGuide).inset(24)
                 make.centerY.equalToSuperview().priority(.low)
             } else {
@@ -280,11 +280,50 @@ final class LoginRootView: BaseRootView {
         label.isHidden = (message == nil)
     }
 
-    @objc private func didTapLoginActionButton() {
+    func setLoginButton(enabled: Bool) {
+        loginActionButton.isEnabled = enabled
+        loginActionButton.alpha = enabled ? 1.0 : 0.5
+    }
+
+    func setEmailEditingTarget(_ target: Any?, action: Selector) {
+        emailIconTextFieldView.addTextFieldTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setPasswordEditingTarget(_ target: Any?, action: Selector) {
+        passwordIconTextFieldView.addTextFieldTarget(target, action: action, for: .editingChanged)
+    }
+
+    func setEmailReturnTarget(_ target: Any?, action: Selector) {
+        emailIconTextFieldView.addTextFieldTarget(target, action: action, for: .editingDidEndOnExit)
+    }
+
+    func setPasswordReturnTarget(_ target: Any?, action: Selector) {
+        passwordIconTextFieldView.addTextFieldTarget(target, action: action, for: .editingDidEndOnExit)
+    }
+
+    func setEmailTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
+        emailIconTextFieldView.setTextFieldDelegate(delegate)
+    }
+
+    func setPasswordTextFieldDelegate(_ delegate: UITextFieldDelegate?) {
+        passwordIconTextFieldView.setTextFieldDelegate(delegate)
+    }
+
+    func focusPasswordTextField() {
+        passwordIconTextFieldView.focus()
+    }
+
+    func dismissKeyboard() {
+        endEditing(true)
+    }
+
+    @objc
+    private func didTapLoginActionButton() {
         onTapLoginButton?(emailText, passwordText)
     }
 
-    @objc private func didTapSignupTapOverlayButton() {
+    @objc
+    private func didTapSignupTapOverlayButton() {
         onTapSignupButton?()
     }
 }
