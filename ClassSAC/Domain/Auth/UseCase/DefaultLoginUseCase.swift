@@ -18,7 +18,7 @@ final class DefaultLoginUseCase: LoginUseCase {
     func execute(
         email: String,
         password: String,
-        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+        completion: @escaping (Result<UserSession, AuthError>) -> Void
     ) {
         authRepository.login(
             email: email,

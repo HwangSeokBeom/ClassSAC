@@ -53,15 +53,23 @@ final class LoginViewModel {
     }
 
     func didTapLoginButton(input: Input) {
-        let output = transform(input: input)
+        let trimmedEmail = input.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPassword = input.password.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let validatedInput = Input(
+            email: trimmedEmail,
+            password: trimmedPassword
+        )
+
+        let output = transform(input: validatedInput)
 
         guard output.isLoginButtonEnabled else {
             return
         }
 
         loginUseCase.execute(
-            email: input.email,
-            password: input.password
+            email: trimmedEmail,
+            password: trimmedPassword
         ) { [weak self] result in
             switch result {
             case .success(let userSession):

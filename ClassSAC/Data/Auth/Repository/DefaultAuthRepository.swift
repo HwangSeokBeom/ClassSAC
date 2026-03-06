@@ -19,7 +19,7 @@ final class DefaultAuthRepository: AuthRepository {
         email: String,
         password: String,
         nick: String,
-        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+        completion: @escaping (Result<UserSession, AuthError>) -> Void
     ) {
         authRemoteDataSource.join(
             email: email,
@@ -31,7 +31,7 @@ final class DefaultAuthRepository: AuthRepository {
                 completion(.success(responseDTO.toEntity()))
 
             case .failure(let error):
-                completion(.failure(error))
+                completion(.failure(self.mapAuthError(error)))
             }
         }
     }
@@ -39,7 +39,7 @@ final class DefaultAuthRepository: AuthRepository {
     func login(
         email: String,
         password: String,
-        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+        completion: @escaping (Result<UserSession, AuthError>) -> Void
     ) {
         authRemoteDataSource.login(
             email: email,
@@ -50,8 +50,37 @@ final class DefaultAuthRepository: AuthRepository {
                 completion(.success(responseDTO.toEntity()))
 
             case .failure(let error):
-                completion(.failure(error))
+                completion(.failure(self.mapAuthError(error)))
             }
+        }
+    }
+}
+
+private extension DefaultAuthRepository {
+
+    func mapAuthError(_ error: ClassSACAPIError) -> AuthError {
+        switch error {
+        case .statusCode(let statusCode, _):
+            switch statusCode {
+            case 401:
+                return .invalidCredential
+            case 403:
+                return .unauthorized
+            case 409:
+                return .duplicateEmail
+            case 429:
+                return .network
+            case 500...599:
+                return .network
+            default:
+                return .unknown
+            }
+
+        case .underlying:
+            return .network
+
+        case .invalidURL, .decoding, .deallocated:
+            return .unknown
         }
     }
 }

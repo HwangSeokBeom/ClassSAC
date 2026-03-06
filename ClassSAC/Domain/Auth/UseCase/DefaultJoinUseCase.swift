@@ -19,7 +19,7 @@ final class DefaultJoinUseCase: JoinUseCase {
         email: String,
         password: String,
         nick: String,
-        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+        completion: @escaping (Result<UserSession, AuthError>) -> Void
     ) {
         authRepository.join(
             email: email,

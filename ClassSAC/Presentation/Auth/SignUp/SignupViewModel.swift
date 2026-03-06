@@ -81,16 +81,28 @@ final class SignupViewModel {
     }
 
     func didTapSignupButton(input: Input) {
-        let output = transform(input: input)
+        let trimmedEmail = input.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNick = input.nick.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPassword = input.password.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPasswordConfirm = input.passwordConfirm.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let validatedInput = Input(
+            email: trimmedEmail,
+            nick: trimmedNick,
+            password: trimmedPassword,
+            passwordConfirm: trimmedPasswordConfirm
+        )
+
+        let output = transform(input: validatedInput)
 
         guard output.isSignupButtonEnabled else {
             return
         }
 
         joinUseCase.execute(
-            email: input.email,
-            password: input.password,
-            nick: input.nick
+            email: trimmedEmail,
+            password: trimmedPassword,
+            nick: trimmedNick
         ) { [weak self] result in
             switch result {
             case .success(let userSession):

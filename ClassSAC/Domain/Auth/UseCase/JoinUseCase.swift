@@ -10,6 +10,6 @@ protocol JoinUseCase: AnyObject {
         email: String,
         password: String,
         nick: String,
-        completion: @escaping (Result<UserSession, ClassSACAPIError>) -> Void
+        completion: @escaping (Result<UserSession, AuthError>) -> Void
     )
 }
