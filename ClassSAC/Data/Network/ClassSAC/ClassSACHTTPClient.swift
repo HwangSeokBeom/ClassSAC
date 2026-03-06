@@ -1,0 +1,137 @@
+//
+//  ClassSACHTTPClient.swift
+//  CineWave
+//
+//  Created by Hwangseokbeom on 2/5/26.
+//
+
+import Foundation
+import Alamofire
+
+final class ClassSACHTTPClient: ClassSACHTTPClienting {
+
+    private let session: Session
+    private let decoder: JSONDecoder
+
+    init(session: Session, decoder: JSONDecoder = .init()) {
+        self.session = session
+        self.decoder = decoder
+    }
+
+    func request<T: Decodable>(
+        _ endpoint: ClassSACEndpoint,
+        as type: T.Type,
+        completion: @escaping (Result<T, ClassSACAPIError>) -> Void
+    ) {
+        let urlRequest: URLRequest
+        do {
+            urlRequest = try endpoint.asURLRequest()
+        } catch {
+            completion(.failure(.invalidURL))
+            return
+        }
+
+        session.request(urlRequest)
+            .validate(statusCode: 200..<300)
+            .responseData { [decoder] response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let decodedValue = try decoder.decode(T.self, from: data)
+                        completion(.success(decodedValue))
+                    } catch {
+                        completion(.failure(.decoding(error)))
+                    }
+
+                case .failure(let afError):
+                    let message = Self.extractServerMessage(from: response.data)
+                    if let statusCode = response.response?.statusCode {
+                        completion(.failure(.statusCode(statusCode, message: message)))
+                    } else {
+                        completion(.failure(.underlying(afError)))
+                    }
+                }
+            }
+    }
+
+    func requestVoid(
+        _ endpoint: ClassSACEndpoint,
+        completion: @escaping (Result<Void, ClassSACAPIError>) -> Void
+    ) {
+        let urlRequest: URLRequest
+        do {
+            urlRequest = try endpoint.asURLRequest()
+        } catch {
+            completion(.failure(.invalidURL))
+            return
+        }
+
+        session.request(urlRequest)
+            .validate(statusCode: 200..<300)
+            .responseData { response in
+                switch response.result {
+                case .success:
+                    completion(.success(()))
+
+                case .failure(let afError):
+                    let message = Self.extractServerMessage(from: response.data)
+                    if let statusCode = response.response?.statusCode {
+                        completion(.failure(.statusCode(statusCode, message: message)))
+                    } else {
+                        completion(.failure(.underlying(afError)))
+                    }
+                }
+            }
+    }
+
+    func upload<T: Decodable>(
+        _ endpoint: ClassSACEndpoint,
+        multipartFormDataBuilder: @escaping (MultipartFormData) -> Void,
+        as type: T.Type,
+        completion: @escaping (Result<T, ClassSACAPIError>) -> Void
+    ) {
+        precondition(endpoint.isMultipart, "multipart 업로드는 endpoint.isMultipart == true 이어야 합니다.")
+
+        let urlRequest: URLRequest
+        do {
+            urlRequest = try endpoint.asURLRequest()
+        } catch {
+            completion(.failure(.invalidURL))
+            return
+        }
+
+        session.upload(
+            multipartFormData: multipartFormDataBuilder,
+            with: urlRequest
+        )
+        .validate(statusCode: 200..<300)
+        .responseData { [decoder] response in
+            switch response.result {
+            case .success(let data):
+                do {
+                    let decodedValue = try decoder.decode(T.self, from: data)
+                    completion(.success(decodedValue))
+                } catch {
+                    completion(.failure(.decoding(error)))
+                }
+
+            case .failure(let afError):
+                let message = Self.extractServerMessage(from: response.data)
+                if let statusCode = response.response?.statusCode {
+                    completion(.failure(.statusCode(statusCode, message: message)))
+                } else {
+                    completion(.failure(.underlying(afError)))
+                }
+            }
+        }
+    }
+
+    private static func extractServerMessage(from data: Data?) -> String? {
+        guard let data else { return nil }
+        guard
+            let object = try? JSONSerialization.jsonObject(with: data, options: []),
+            let dictionary = object as? [String: Any]
+        else { return nil }
+        return dictionary["message"] as? String
+    }
+}
