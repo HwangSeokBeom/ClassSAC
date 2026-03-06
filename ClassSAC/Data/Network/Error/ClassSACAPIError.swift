@@ -13,6 +13,7 @@ enum ClassSACAPIError: AppError {
     case statusCode(Int, message: String?)
     case decoding(Error)
     case underlying(Error)
+    case deallocated
 
     var userMessage: String {
         switch self {
@@ -50,6 +51,9 @@ enum ClassSACAPIError: AppError {
                 return Self.map(urlError)
             }
             return (error as NSError).localizedDescription
+            
+        case .deallocated:
+            return "요청 처리 중 객체가 해제되었습니다."
         }
     }
 
@@ -67,6 +71,8 @@ enum ClassSACAPIError: AppError {
 
         case .underlying(let error):
             return "underlying error: \(error)"
+        case .deallocated:
+            return "repository deallocated"
         }
     }
 }
