@@ -8,15 +8,11 @@
 import UIKit
 import SnapKit
 
-protocol CourseListCollectionViewCellDelegate: AnyObject {
-    func courseListCollectionViewCellDidTapLikeButton(_ cell: CourseListCollectionViewCell)
-}
-
 final class CourseListCollectionViewCell: UICollectionViewCell {
 
     static let identifier = "CourseListCollectionViewCell"
 
-    weak var delegate: CourseListCollectionViewCellDelegate?
+    var onTapLikeButton: (() -> Void)?
 
     private let thumbnailImageView: UIImageView = {
         let imageView = UIImageView()
@@ -105,6 +101,25 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+
+        thumbnailImageView.image = nil
+        titleLabel.text = nil
+        descriptionLabel.text = nil
+        categoryTagLabel.text = nil
+
+        originalPriceLabel.attributedText = nil
+        salePriceLabel.text = nil
+        discountPercentLabel.text = nil
+
+        originalPriceLabel.isHidden = false
+        salePriceLabel.isHidden = false
+        discountPercentLabel.isHidden = false
+
+        onTapLikeButton = nil
+    }
+
     private func configureHierarchy() {
         [
             thumbnailImageView,
@@ -177,14 +192,10 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         likeButton.addTarget(self, action: #selector(didTapLikeButton), for: .touchUpInside)
     }
 
-    func configure(
-        cellViewModel: CourseListCellViewModel,
-        categoryTitle: String,
-        description: String?
-    ) {
+    func configure(cellViewModel: CourseListCellViewModel) {
         titleLabel.text = cellViewModel.title
-        descriptionLabel.text = description
-        categoryTagLabel.text = categoryTitle
+        descriptionLabel.text = cellViewModel.descriptionText
+        categoryTagLabel.text = cellViewModel.categoryTitle
 
         let likeImage = cellViewModel.isLiked ? AppIcon.heartFill.image : AppIcon.heart.image
         likeButton.setImage(likeImage, for: .normal)
@@ -194,7 +205,7 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         discountPercentLabel.isHidden = !cellViewModel.shouldShowDiscountPercent
 
         if let originalPriceText = cellViewModel.originalPriceText {
-            let attributedString = NSAttributedString(
+            originalPriceLabel.attributedText = NSAttributedString(
                 string: originalPriceText,
                 attributes: [
                     .foregroundColor: AppColor.textTertiary,
@@ -202,7 +213,6 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
                     .strikethroughStyle: NSUnderlineStyle.single.rawValue
                 ]
             )
-            originalPriceLabel.attributedText = attributedString
         } else {
             originalPriceLabel.attributedText = nil
         }
@@ -215,6 +225,6 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
     }
 
     @objc private func didTapLikeButton() {
-        delegate?.courseListCollectionViewCellDidTapLikeButton(self)
+        onTapLikeButton?()
     }
 }

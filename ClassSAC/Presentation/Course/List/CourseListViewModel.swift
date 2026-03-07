@@ -310,8 +310,9 @@ private extension CourseListViewModel {
             return CourseListCellViewModel(
                 courseID: course.id,
                 thumbnailImageURLString: course.thumbnailURL,
-                categoryTitleText: course.category.title,
+                categoryTitle: course.category.title,
                 title: course.title,
+                descriptionText: course.description,
                 creatorNick: course.creatorNick,
                 isLiked: course.isLiked,
                 originalPriceText: nil,
@@ -327,8 +328,9 @@ private extension CourseListViewModel {
             return CourseListCellViewModel(
                 courseID: course.id,
                 thumbnailImageURLString: course.thumbnailURL,
-                categoryTitleText: course.category.title,
+                categoryTitle: course.category.title,
                 title: course.title,
+                descriptionText: course.description,
                 creatorNick: course.creatorNick,
                 isLiked: course.isLiked,
                 originalPriceText: nil,
@@ -344,8 +346,9 @@ private extension CourseListViewModel {
             return CourseListCellViewModel(
                 courseID: course.id,
                 thumbnailImageURLString: course.thumbnailURL,
-                categoryTitleText: course.category.title,
+                categoryTitle: course.category.title,
                 title: course.title,
+                descriptionText: course.description,
                 creatorNick: course.creatorNick,
                 isLiked: course.isLiked,
                 originalPriceText: CoursePriceFormatter.formattedPrice(originalPrice),
