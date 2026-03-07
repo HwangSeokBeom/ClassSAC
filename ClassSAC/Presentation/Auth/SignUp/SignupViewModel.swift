@@ -76,9 +76,8 @@ final class SignupViewModel {
             isSignupButtonEnabled: isSignupButtonEnabled
         )
     }
-    
-    private func emailMessage(_ email: String) -> String? {
 
+    private func emailMessage(_ email: String) -> String? {
         if email.isEmpty {
             return "이메일을 입력해주세요."
         }

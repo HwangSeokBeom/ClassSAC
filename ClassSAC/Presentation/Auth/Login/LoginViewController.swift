@@ -34,7 +34,7 @@ final class LoginViewController: UIViewController {
         super.viewDidLoad()
         bind()
         setupActions()
-        setupKeyboardDismissGesture()
+        enableKeyboardDismissGesture()
         updateLoginValidationUI()
     }
 
@@ -49,23 +49,8 @@ final class LoginViewController: UIViewController {
     }
 
     private func setupActions() {
-        rootView.onTapLoginButton = { [weak self] email, password in
-            guard let self else { return }
-
-            let input = LoginViewModel.Input(
-                email: email,
-                password: password
-            )
-
-            let output = self.viewModel.transform(input: input)
-
-            guard output.isLoginButtonEnabled else {
-                self.applyLoginOutput(output)
-                return
-            }
-
-            self.rootView.dismissKeyboard()
-            self.viewModel.didTapLoginButton(input: input)
+        rootView.onTapLoginButton = { [weak self] _, _ in
+            self?.attemptLogin()
         }
 
         rootView.onTapSignupButton = { [weak self] in
@@ -81,13 +66,21 @@ final class LoginViewController: UIViewController {
         rootView.setPasswordReturnTarget(self, action: #selector(passwordTextFieldDidReturn))
     }
 
-    private func setupKeyboardDismissGesture() {
-        let tapGestureRecognizer = UITapGestureRecognizer(
-            target: self,
-            action: #selector(didTapBackgroundView)
+    private func attemptLogin() {
+        let input = LoginViewModel.Input(
+            email: rootView.emailText,
+            password: rootView.passwordText
         )
-        tapGestureRecognizer.cancelsTouchesInView = false
-        view.addGestureRecognizer(tapGestureRecognizer)
+
+        let output = viewModel.transform(input: input)
+
+        guard output.isLoginButtonEnabled else {
+            applyLoginOutput(output)
+            return
+        }
+
+        rootView.dismissKeyboard()
+        viewModel.didTapLoginButton(input: input)
     }
 
     @objc private func emailTextDidChange() {
@@ -103,25 +96,7 @@ final class LoginViewController: UIViewController {
     }
 
     @objc private func passwordTextFieldDidReturn() {
-        rootView.dismissKeyboard()
-
-        let input = LoginViewModel.Input(
-            email: rootView.emailText,
-            password: rootView.passwordText
-        )
-
-        let output = viewModel.transform(input: input)
-
-        guard output.isLoginButtonEnabled else {
-            applyLoginOutput(output)
-            return
-        }
-
-        viewModel.didTapLoginButton(input: input)
-    }
-
-    @objc private func didTapBackgroundView() {
-        rootView.dismissKeyboard()
+        attemptLogin()
     }
 
     private func updateLoginValidationUI() {

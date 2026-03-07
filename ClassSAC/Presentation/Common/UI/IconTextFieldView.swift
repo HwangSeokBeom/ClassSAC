@@ -79,6 +79,7 @@ final class IconTextFieldView: BaseRootView {
             switch rightAccessoryType {
             case .none:
                 make.trailing.equalToSuperview().inset(12)
+
             case .toggleSecure:
                 make.trailing.equalTo(rightAccessoryButton.snp.leading).offset(-8)
             }
@@ -141,8 +142,7 @@ final class IconTextFieldView: BaseRootView {
         inputTextField.resignFirstResponder()
     }
 
-    @objc
-    private func didTapRightAccessoryButton() {
+    @objc private func didTapRightAccessoryButton() {
         let wasFirstResponder = inputTextField.isFirstResponder
         let currentSelectedTextRange = inputTextField.selectedTextRange
         let currentText = inputTextField.text

@@ -34,7 +34,7 @@ final class SignupViewController: UIViewController {
         super.viewDidLoad()
         bind()
         setupActions()
-        setupKeyboardDismissGesture()
+        enableKeyboardDismissGesture()
         applyTitleStyle()
         updateSignupValidationUI()
 
@@ -64,24 +64,7 @@ final class SignupViewController: UIViewController {
 
     private func setupActions() {
         signupRootView.onTapSignupButton = { [weak self] in
-            guard let self else { return }
-
-            let input = SignupViewModel.Input(
-                email: self.signupRootView.emailText,
-                nick: self.signupRootView.nickText,
-                password: self.signupRootView.passwordText,
-                passwordConfirm: self.signupRootView.passwordConfirmText
-            )
-
-            let output = self.viewModel.transform(input: input)
-
-            guard output.isSignupButtonEnabled else {
-                self.applySignupOutput(output)
-                return
-            }
-
-            self.signupRootView.dismissKeyboard()
-            self.viewModel.didTapSignupButton(input: input)
+            self?.attemptSignup()
         }
 
         signupRootView.onTapLoginButton = { [weak self] in
@@ -104,13 +87,23 @@ final class SignupViewController: UIViewController {
         signupRootView.setPasswordConfirmReturnTarget(self, action: #selector(passwordConfirmTextFieldDidReturn))
     }
 
-    private func setupKeyboardDismissGesture() {
-        let tapGestureRecognizer = UITapGestureRecognizer(
-            target: self,
-            action: #selector(didTapBackgroundView)
+    private func attemptSignup() {
+        let input = SignupViewModel.Input(
+            email: signupRootView.emailText,
+            nick: signupRootView.nickText,
+            password: signupRootView.passwordText,
+            passwordConfirm: signupRootView.passwordConfirmText
         )
-        tapGestureRecognizer.cancelsTouchesInView = false
-        view.addGestureRecognizer(tapGestureRecognizer)
+
+        let output = viewModel.transform(input: input)
+
+        guard output.isSignupButtonEnabled else {
+            applySignupOutput(output)
+            return
+        }
+
+        signupRootView.dismissKeyboard()
+        viewModel.didTapSignupButton(input: input)
     }
 
     private func applyTitleStyle() {
@@ -157,27 +150,7 @@ final class SignupViewController: UIViewController {
     }
 
     @objc private func passwordConfirmTextFieldDidReturn() {
-        signupRootView.dismissKeyboard()
-
-        let input = SignupViewModel.Input(
-            email: signupRootView.emailText,
-            nick: signupRootView.nickText,
-            password: signupRootView.passwordText,
-            passwordConfirm: signupRootView.passwordConfirmText
-        )
-
-        let output = viewModel.transform(input: input)
-
-        guard output.isSignupButtonEnabled else {
-            applySignupOutput(output)
-            return
-        }
-
-        viewModel.didTapSignupButton(input: input)
-    }
-
-    @objc private func didTapBackgroundView() {
-        signupRootView.dismissKeyboard()
+        attemptSignup()
     }
 
     private func updateSignupValidationUI() {
