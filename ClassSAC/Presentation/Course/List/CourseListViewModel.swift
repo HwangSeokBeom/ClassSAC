@@ -18,8 +18,8 @@ final class CourseListViewModel {
         let didTapCategoryItem: Observable<CourseCategoryItem>
         let didTapLatestSortButton: Observable<Void>
         let didTapOriginalPriceDescendingSortButton: Observable<Void>
-        let didTapCourseCell: Observable<Int>
-        let didTapLikeButton: Observable<Int>
+        let didTapCourseCell: Observable<String>
+        let didTapLikeButton: Observable<String>
     }
 
     struct Output {
@@ -124,11 +124,8 @@ final class CourseListViewModel {
             .share(replay: 1, scope: .whileConnected)
 
         input.didTapLikeButton
-            .withLatestFrom(filteredAndSortedCoursesObservable) { selectedIndex, courses in
-                (selectedIndex, courses)
-            }
-            .compactMap { [weak self] selectedIndex, courses -> Course? in
-                self?.course(at: selectedIndex, in: courses)
+            .compactMap { [weak self] courseID -> Course? in
+                self?.course(with: courseID)
             }
             .flatMapLatest { [weak self] course -> Observable<Void> in
                 guard let self else { return Observable.empty() }
@@ -167,12 +164,6 @@ final class CourseListViewModel {
             .map { "\($0.count)개" }
 
         let routeToCourseDetailObservable = input.didTapCourseCell
-            .withLatestFrom(filteredAndSortedCoursesObservable) { selectedIndex, courses in
-                (selectedIndex, courses)
-            }
-            .compactMap { [weak self] selectedIndex, courses -> String? in
-                self?.course(at: selectedIndex, in: courses)?.id
-            }
 
         return Output(
             categoryItems: Observable.just(categoryItems),
@@ -274,9 +265,8 @@ private extension CourseListViewModel {
         }
     }
 
-    func course(at index: Int, in courses: [Course]) -> Course? {
-        guard courses.indices.contains(index) else { return nil }
-        return courses[index]
+    func course(with courseID: String) -> Course? {
+        allCoursesRelay.value.first { $0.id == courseID }
     }
 
     func updateLikeStateLocally(

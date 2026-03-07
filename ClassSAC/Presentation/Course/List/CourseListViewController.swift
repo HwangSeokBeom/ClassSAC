@@ -14,20 +14,25 @@ final class CourseListViewController: UIViewController {
 
     private let rootView = CourseListRootView()
     private let viewModel: CourseListViewModel
+    private let thumbnailProvider: CourseThumbnailProviding
 
     private let disposeBag = DisposeBag()
 
     private let viewDidLoadRelay = PublishRelay<Void>()
     private let latestSortTapRelay = PublishRelay<Void>()
     private let originalPriceDescendingSortTapRelay = PublishRelay<Void>()
-    private let likeButtonTapRelay = PublishRelay<Int>()
+    private let likeButtonTapRelay = PublishRelay<String>()
 
     private let selectedCategoryItemsRelay = BehaviorRelay<Set<CourseCategoryItem>>(value: [.all])
     private let categoryItemsRelay = BehaviorRelay<[CourseCategoryItem]>(value: [])
     private let courseCellViewModelsRelay = BehaviorRelay<[CourseListCellViewModel]>(value: [])
 
-    init(viewModel: CourseListViewModel) {
+    init(
+        viewModel: CourseListViewModel,
+        thumbnailProvider: CourseThumbnailProviding
+    ) {
         self.viewModel = viewModel
+        self.thumbnailProvider = thumbnailProvider
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -37,6 +42,16 @@ final class CourseListViewController: UIViewController {
 
     override func loadView() {
         view = rootView
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: false)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: false)
     }
 
     override func viewDidLoad() {
@@ -53,21 +68,30 @@ final class CourseListViewController: UIViewController {
             didTapCategoryItem: rootView.categoryCollectionView.rx.modelSelected(CourseCategoryItem.self).asObservable(),
             didTapLatestSortButton: latestSortTapRelay.asObservable(),
             didTapOriginalPriceDescendingSortButton: originalPriceDescendingSortTapRelay.asObservable(),
-            didTapCourseCell: rootView.courseCollectionView.rx.itemSelected.map(\.item).asObservable(),
+            didTapCourseCell: rootView.courseCollectionView.rx.modelSelected(CourseListCellViewModel.self).map(\.courseID).asObservable(),
             didTapLikeButton: likeButtonTapRelay.asObservable()
         )
 
         let output = viewModel.transform(input: input)
 
         output.categoryItems
-            .bind(to: categoryItemsRelay)
+            .observe(on: MainScheduler.instance)
+            .bind(with: self) { owner, categoryItems in
+                owner.categoryItemsRelay.accept(categoryItems)
+                owner.rootView.categoryCollectionView.reloadData()
+            }
             .disposed(by: disposeBag)
 
         output.selectedCategoryItems
-            .bind(to: selectedCategoryItemsRelay)
+            .observe(on: MainScheduler.instance)
+            .bind(with: self) { owner, selectedCategoryItems in
+                owner.selectedCategoryItemsRelay.accept(selectedCategoryItems)
+                owner.rootView.categoryCollectionView.reloadData()
+            }
             .disposed(by: disposeBag)
 
         output.courseCellViewModels
+            .observe(on: MainScheduler.instance)
             .bind(to: courseCellViewModelsRelay)
             .disposed(by: disposeBag)
 
@@ -79,6 +103,7 @@ final class CourseListViewController: UIViewController {
             .disposed(by: disposeBag)
 
         output.courseCountText
+            .observe(on: MainScheduler.instance)
             .bind(to: rootView.courseCountLabel.rx.text)
             .disposed(by: disposeBag)
 
@@ -122,10 +147,12 @@ final class CourseListViewController: UIViewController {
             .disposed(by: disposeBag)
 
         categoryItemsRelay
-            .bind(to: rootView.categoryCollectionView.rx.items(
-                cellIdentifier: CourseCategoryCollectionViewCell.identifier,
-                cellType: CourseCategoryCollectionViewCell.self
-            )) { [weak self] _, categoryItem, cell in
+            .bind(
+                to: rootView.categoryCollectionView.rx.items(
+                    cellIdentifier: CourseCategoryCollectionViewCell.identifier,
+                    cellType: CourseCategoryCollectionViewCell.self
+                )
+            ) { [weak self] _, categoryItem, cell in
                 guard let self else { return }
 
                 let isSelected = self.selectedCategoryItemsRelay.value.contains(categoryItem)
@@ -138,16 +165,21 @@ final class CourseListViewController: UIViewController {
             .disposed(by: disposeBag)
 
         courseCellViewModelsRelay
-            .bind(to: rootView.courseCollectionView.rx.items(
-                cellIdentifier: CourseListCollectionViewCell.identifier,
-                cellType: CourseListCollectionViewCell.self
-            )) { [weak self] index, cellViewModel, cell in
+            .bind(
+                to: rootView.courseCollectionView.rx.items(
+                    cellIdentifier: CourseListCollectionViewCell.identifier,
+                    cellType: CourseListCollectionViewCell.self
+                )
+            ) { [weak self] _, cellViewModel, cell in
                 guard let self else { return }
 
-                cell.configure(cellViewModel: cellViewModel)
+                cell.configure(
+                    cellViewModel: cellViewModel,
+                    thumbnailProvider: self.thumbnailProvider
+                )
 
                 cell.onTapLikeButton = { [weak self] in
-                    self?.likeButtonTapRelay.accept(index)
+                    self?.likeButtonTapRelay.accept(cellViewModel.courseID)
                 }
             }
             .disposed(by: disposeBag)
@@ -195,14 +227,20 @@ extension CourseListViewController: UICollectionViewDelegateFlowLayout {
     ) -> CGSize {
         if collectionView == rootView.categoryCollectionView {
             let categoryItems = categoryItemsRelay.value
+            guard categoryItems.indices.contains(indexPath.item) else { return .zero }
+
             let title = categoryItems[indexPath.item].title
-            let width = (title as NSString).size(withAttributes: [.font: AppFont.caption.font]).width + 28
+            let width = (title as NSString).size(
+                withAttributes: [.font: AppFont.caption.font]
+            ).width + 28
+
             return CGSize(width: width, height: 32)
         }
 
         let horizontalInset: CGFloat = 22
         let spacing: CGFloat = 14
         let width = (collectionView.bounds.width - (horizontalInset * 2) - spacing) / 2
-        return CGSize(width: width, height: width + 94)
+
+        return CGSize(width: width, height: width + 120)
     }
 }

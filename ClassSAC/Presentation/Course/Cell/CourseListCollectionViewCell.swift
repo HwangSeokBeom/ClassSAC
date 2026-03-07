@@ -64,6 +64,7 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         let label = UILabel()
         label.font = AppFont.body.font
         label.textColor = AppColor.textTertiary
+        label.numberOfLines = 1
         return label
     }()
 
@@ -71,6 +72,7 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         let label = UILabel()
         label.font = AppFont.title.font
         label.textColor = AppColor.textPrimary
+        label.numberOfLines = 1
         return label
     }()
 
@@ -78,14 +80,15 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         let label = UILabel()
         label.font = AppFont.title.font
         label.textColor = AppColor.accentPrimary
+        label.numberOfLines = 1
         return label
     }()
 
-    private let priceStackView: UIStackView = {
+    private let bottomPriceStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
         stackView.alignment = .center
-        stackView.spacing = 6
+        stackView.spacing = 8
         return stackView
     }()
 
@@ -104,19 +107,17 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
 
-        thumbnailImageView.image = nil
         titleLabel.text = nil
         descriptionLabel.text = nil
         categoryTagLabel.text = nil
-
         originalPriceLabel.attributedText = nil
         salePriceLabel.text = nil
         discountPercentLabel.text = nil
 
         originalPriceLabel.isHidden = false
-        salePriceLabel.isHidden = false
         discountPercentLabel.isHidden = false
 
+        thumbnailImageView.image = nil
         onTapLikeButton = nil
     }
 
@@ -127,7 +128,8 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
             categoryTagContainerView,
             titleLabel,
             descriptionLabel,
-            priceStackView
+            originalPriceLabel,
+            bottomPriceStackView
         ].forEach { contentView.addSubview($0) }
 
         [
@@ -135,10 +137,9 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         ].forEach { categoryTagContainerView.addSubview($0) }
 
         [
-            originalPriceLabel,
             salePriceLabel,
             discountPercentLabel
-        ].forEach { priceStackView.addArrangedSubview($0) }
+        ].forEach { bottomPriceStackView.addArrangedSubview($0) }
     }
 
     private func configureLayout() {
@@ -172,8 +173,13 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
             make.leading.trailing.equalToSuperview()
         }
 
-        priceStackView.snp.makeConstraints { make in
+        originalPriceLabel.snp.makeConstraints { make in
             make.top.equalTo(descriptionLabel.snp.bottom).offset(10)
+            make.leading.trailing.equalToSuperview()
+        }
+
+        bottomPriceStackView.snp.makeConstraints { make in
+            make.top.equalTo(originalPriceLabel.snp.bottom).offset(4)
             make.leading.trailing.equalToSuperview()
             make.bottom.lessThanOrEqualToSuperview()
         }
@@ -183,7 +189,6 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         backgroundColor = .clear
         contentView.backgroundColor = .clear
 
-        originalPriceLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         salePriceLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         discountPercentLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
     }
@@ -192,7 +197,10 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         likeButton.addTarget(self, action: #selector(didTapLikeButton), for: .touchUpInside)
     }
 
-    func configure(cellViewModel: CourseListCellViewModel) {
+    func configure(
+        cellViewModel: CourseListCellViewModel,
+        thumbnailProvider: CourseThumbnailProviding
+    ) {
         titleLabel.text = cellViewModel.title
         descriptionLabel.text = cellViewModel.descriptionText
         categoryTagLabel.text = cellViewModel.categoryTitle
@@ -200,28 +208,45 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         let likeImage = cellViewModel.isLiked ? AppIcon.heartFill.image : AppIcon.heart.image
         likeButton.setImage(likeImage, for: .normal)
 
-        originalPriceLabel.isHidden = !cellViewModel.shouldShowOriginalPrice
-        salePriceLabel.isHidden = !cellViewModel.shouldShowSalePrice
-        discountPercentLabel.isHidden = !cellViewModel.shouldShowDiscountPercent
+        if cellViewModel.isFree {
+            originalPriceLabel.isHidden = true
+            discountPercentLabel.isHidden = true
 
-        if let originalPriceText = cellViewModel.originalPriceText {
-            originalPriceLabel.attributedText = NSAttributedString(
-                string: originalPriceText,
-                attributes: [
-                    .foregroundColor: AppColor.textTertiary,
-                    .font: AppFont.body.font,
-                    .strikethroughStyle: NSUnderlineStyle.single.rawValue
-                ]
-            )
+            salePriceLabel.text = "무료"
+            salePriceLabel.textColor = AppColor.accentPrimary
+        } else if cellViewModel.shouldShowDiscountPercent {
+            originalPriceLabel.isHidden = false
+            discountPercentLabel.isHidden = false
+
+            if let originalPriceText = cellViewModel.originalPriceText {
+                originalPriceLabel.attributedText = NSAttributedString(
+                    string: originalPriceText,
+                    attributes: [
+                        .foregroundColor: AppColor.textTertiary,
+                        .font: AppFont.body.font,
+                        .strikethroughStyle: NSUnderlineStyle.single.rawValue
+                    ]
+                )
+            } else {
+                originalPriceLabel.attributedText = nil
+            }
+
+            salePriceLabel.text = cellViewModel.salePriceText
+            salePriceLabel.textColor = AppColor.textPrimary
+            discountPercentLabel.text = cellViewModel.discountPercentText
         } else {
-            originalPriceLabel.attributedText = nil
+            originalPriceLabel.isHidden = true
+            discountPercentLabel.isHidden = true
+
+            salePriceLabel.text = cellViewModel.salePriceText
+            salePriceLabel.textColor = AppColor.textPrimary
         }
 
-        salePriceLabel.text = cellViewModel.salePriceText
-        salePriceLabel.textColor = cellViewModel.isFree ? AppColor.accentPrimary : AppColor.textPrimary
-        discountPercentLabel.text = cellViewModel.discountPercentText
-
-        thumbnailImageView.image = nil
+        thumbnailProvider.cancelLoad(on: thumbnailImageView)
+        thumbnailProvider.loadThumbnail(
+            on: thumbnailImageView,
+            path: cellViewModel.thumbnailImageURLString
+        )
     }
 
     @objc private func didTapLikeButton() {

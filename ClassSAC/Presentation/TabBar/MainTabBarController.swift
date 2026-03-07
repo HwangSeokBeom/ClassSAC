@@ -9,6 +9,17 @@ import UIKit
 
 final class MainTabBarController: UITabBarController {
 
+    private let courseSceneDIContainer: CourseSceneDIContainer
+
+    init(courseSceneDIContainer: CourseSceneDIContainer) {
+        self.courseSceneDIContainer = courseSceneDIContainer
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         configureView()
@@ -21,7 +32,7 @@ final class MainTabBarController: UITabBarController {
     }
 
     private func configureViewControllers() {
-        let listViewController = ListViewController()
+        let listViewController = courseSceneDIContainer.makeCourseListViewController()
         let searchViewController = SearchViewController()
         let favoriteViewController = FavoriteViewController()
 
@@ -57,35 +68,30 @@ final class MainTabBarController: UITabBarController {
     }
 
     private func configureTabBarAppearance() {
-        tabBarMinimizeBehavior = .never
-
         tabBar.tintColor = AppColor.accentPrimary
         tabBar.unselectedItemTintColor = AppColor.textPrimary
-        tabBar.isTranslucent = true
-        tabBar.backgroundColor = .clear
-        tabBar.layer.backgroundColor = UIColor.clear.cgColor
         tabBar.layer.masksToBounds = false
-        tabBar.layer.shadowColor = UIColor.clear.cgColor
-        tabBar.layer.shadowOpacity = 0
-        tabBar.layer.shadowRadius = 0
-        tabBar.layer.shadowOffset = .zero
+        tabBar.layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
+        tabBar.layer.shadowOpacity = 1
+        tabBar.layer.shadowRadius = 12
+        tabBar.layer.shadowOffset = CGSize(width: 0, height: -2)
 
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithTransparentBackground()
-        tabBarAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-        tabBarAppearance.backgroundColor = UIColor.white.withAlphaComponent(0.01)
-        tabBarAppearance.shadowColor = .clear
+        tabBarAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialLight)
+        tabBarAppearance.backgroundColor = UIColor.white.withAlphaComponent(0.28)
+        tabBarAppearance.shadowColor = UIColor.white.withAlphaComponent(0.15)
 
         tabBarAppearance.stackedLayoutAppearance.normal.iconColor = AppColor.textPrimary
         tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [
             .foregroundColor: AppColor.textPrimary,
-            .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
+            .font: AppFont.caption.font
         ]
 
         tabBarAppearance.stackedLayoutAppearance.selected.iconColor = AppColor.accentPrimary
         tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [
             .foregroundColor: AppColor.accentPrimary,
-            .font: UIFont.systemFont(ofSize: 10, weight: .bold)
+            .font: AppFont.caption.font
         ]
 
         tabBar.standardAppearance = tabBarAppearance

@@ -29,7 +29,16 @@ final class AppDIContainer {
         )
     }
 
+    func makeCourseSceneDIContainer() -> CourseSceneDIContainer {
+        CourseSceneDIContainer(
+            httpClient: httpClient,
+            accessTokenStore: accessTokenStore
+        )
+    }
+
     func makeMainTabBarController() -> MainTabBarController {
-        MainTabBarController()
+        MainTabBarController(
+            courseSceneDIContainer: makeCourseSceneDIContainer()
+        )
     }
 }
