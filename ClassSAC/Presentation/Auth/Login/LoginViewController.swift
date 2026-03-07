@@ -44,7 +44,7 @@ final class LoginViewController: UIViewController {
         }
 
         viewModel.onLoginFailure = { [weak self] message in
-            self?.showAlert(message: message)
+            self?.showNetworkAlert(message: message)
         }
     }
 
@@ -138,16 +138,6 @@ final class LoginViewController: UIViewController {
         rootView.setStatus(rootView.emailStatusLabel, message: output.emailMessage)
         rootView.setStatus(rootView.passwordStatusLabel, message: output.passwordMessage)
         rootView.setLoginButton(enabled: output.isLoginButtonEnabled)
-    }
-
-    private func showAlert(message: String) {
-        let alertController = UIAlertController(
-            title: "알림",
-            message: message,
-            preferredStyle: .alert
-        )
-        alertController.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alertController, animated: true)
     }
 }
 

@@ -49,22 +49,16 @@ final class SignupViewController: UIViewController {
 
             self.signupRootView.dismissKeyboard()
 
-            let alertController = UIAlertController(
+            self.showAlert(
                 title: "회원가입 완료",
-                message: "회원가입이 완료되었습니다. 로그인 화면으로 이동합니다.",
-                preferredStyle: .alert
-            )
-
-            let confirmAction = UIAlertAction(title: "확인", style: .default) { _ in
-                self.authFlowCoordinator?.showLogin()
+                message: "회원가입이 완료되었습니다. 로그인 화면으로 이동합니다."
+            ) { [weak self] in
+                self?.authFlowCoordinator?.showLogin()
             }
-
-            alertController.addAction(confirmAction)
-            self.present(alertController, animated: true)
         }
 
         viewModel.onJoinFailure = { [weak self] message in
-            self?.showAlert(message: message)
+            self?.showNetworkAlert(message: message)
         }
     }
 
@@ -182,8 +176,7 @@ final class SignupViewController: UIViewController {
         viewModel.didTapSignupButton(input: input)
     }
 
-    @objc
-    private func didTapBackgroundView() {
+    @objc private func didTapBackgroundView() {
         signupRootView.dismissKeyboard()
     }
 
@@ -205,16 +198,6 @@ final class SignupViewController: UIViewController {
         signupRootView.setStatus(signupRootView.passwordStatusLabel, message: output.passwordMessage)
         signupRootView.setStatus(signupRootView.passwordConfirmStatusLabel, message: output.passwordConfirmMessage)
         signupRootView.setSignupButton(enabled: output.isSignupButtonEnabled)
-    }
-
-    private func showAlert(message: String) {
-        let alertController = UIAlertController(
-            title: "알림",
-            message: message,
-            preferredStyle: .alert
-        )
-        alertController.addAction(UIAlertAction(title: "확인", style: .default))
-        present(alertController, animated: true)
     }
 }
 
