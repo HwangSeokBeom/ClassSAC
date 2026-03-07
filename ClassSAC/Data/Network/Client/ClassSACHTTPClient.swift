@@ -1,6 +1,6 @@
 //
 //  ClassSACHTTPClient.swift
-//  CineWave
+//  ClassSAC
 //
 //  Created by Hwangseokbeom on 2/5/26.
 //
@@ -12,10 +12,16 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
 
     private let session: Session
     private let decoder: JSONDecoder
+    private let accessTokenStore: AccessTokenStoring
 
-    init(session: Session, decoder: JSONDecoder = .init()) {
+    init(
+        session: Session,
+        decoder: JSONDecoder = .init(),
+        accessTokenStore: AccessTokenStoring
+    ) {
         self.session = session
         self.decoder = decoder
+        self.accessTokenStore = accessTokenStore
     }
 
     func request<T: Decodable>(
@@ -24,6 +30,7 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
         completion: @escaping (Result<T, ClassSACAPIError>) -> Void
     ) {
         let urlRequest: URLRequest
+
         do {
             urlRequest = try endpoint.asURLRequest()
         } catch {
@@ -33,7 +40,12 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
 
         session.request(urlRequest)
             .validate(statusCode: 200..<300)
-            .responseData { [decoder] response in
+            .responseData { [weak self, decoder] response in
+                guard let self else {
+                    completion(.failure(.deallocated))
+                    return
+                }
+
                 switch response.result {
                 case .success(let data):
                     do {
@@ -45,7 +57,12 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
 
                 case .failure(let afError):
                     let message = Self.extractServerMessage(from: response.data)
+
                     if let statusCode = response.response?.statusCode {
+                        self.handleAuthorizationIfNeeded(
+                            statusCode: statusCode,
+                            endpoint: endpoint
+                        )
                         completion(.failure(.statusCode(statusCode, message: message)))
                     } else {
                         completion(.failure(.underlying(afError)))
@@ -59,6 +76,7 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
         completion: @escaping (Result<Void, ClassSACAPIError>) -> Void
     ) {
         let urlRequest: URLRequest
+
         do {
             urlRequest = try endpoint.asURLRequest()
         } catch {
@@ -68,14 +86,24 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
 
         session.request(urlRequest)
             .validate(statusCode: 200..<300)
-            .responseData { response in
+            .responseData { [weak self] response in
+                guard let self else {
+                    completion(.failure(.deallocated))
+                    return
+                }
+
                 switch response.result {
                 case .success:
                     completion(.success(()))
 
                 case .failure(let afError):
                     let message = Self.extractServerMessage(from: response.data)
+
                     if let statusCode = response.response?.statusCode {
+                        self.handleAuthorizationIfNeeded(
+                            statusCode: statusCode,
+                            endpoint: endpoint
+                        )
                         completion(.failure(.statusCode(statusCode, message: message)))
                     } else {
                         completion(.failure(.underlying(afError)))
@@ -93,6 +121,7 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
         precondition(endpoint.isMultipart, "multipart 업로드는 endpoint.isMultipart == true 이어야 합니다.")
 
         let urlRequest: URLRequest
+
         do {
             urlRequest = try endpoint.asURLRequest()
         } catch {
@@ -105,7 +134,12 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
             with: urlRequest
         )
         .validate(statusCode: 200..<300)
-        .responseData { [decoder] response in
+        .responseData { [weak self, decoder] response in
+            guard let self else {
+                completion(.failure(.deallocated))
+                return
+            }
+
             switch response.result {
             case .success(let data):
                 do {
@@ -117,7 +151,12 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
 
             case .failure(let afError):
                 let message = Self.extractServerMessage(from: response.data)
+
                 if let statusCode = response.response?.statusCode {
+                    self.handleAuthorizationIfNeeded(
+                        statusCode: statusCode,
+                        endpoint: endpoint
+                    )
                     completion(.failure(.statusCode(statusCode, message: message)))
                 } else {
                     completion(.failure(.underlying(afError)))
@@ -126,12 +165,26 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
         }
     }
 
+    private func handleAuthorizationIfNeeded(
+        statusCode: Int,
+        endpoint: ClassSACEndpoint
+    ) {
+        guard endpoint.requiresAuthorization else { return }
+        guard statusCode == 401 || statusCode == 403 else { return }
+
+        accessTokenStore.clear()
+        AuthSessionManager.shared.expireSession()
+    }
+
     private static func extractServerMessage(from data: Data?) -> String? {
         guard let data else { return nil }
         guard
             let object = try? JSONSerialization.jsonObject(with: data, options: []),
             let dictionary = object as? [String: Any]
-        else { return nil }
+        else {
+            return nil
+        }
+
         return dictionary["message"] as? String
     }
 }

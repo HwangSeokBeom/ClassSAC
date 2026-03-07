@@ -22,6 +22,10 @@ struct ClassSACNetworkFactory {
         let session = Session(interceptor: interceptor)
         let decoder = JSONDecoder()
 
-        return ClassSACHTTPClient(session: session, decoder: decoder)
+        return ClassSACHTTPClient(
+            session: session,
+            decoder: decoder,
+            accessTokenStore: accessTokenStore
+        )
     }
 }

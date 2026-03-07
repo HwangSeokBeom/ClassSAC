@@ -17,6 +17,10 @@ final class AppDIContainer {
         accessTokenStore: accessTokenStore
     )
 
+    func makeAccessTokenStore() -> AccessTokenStoring {
+        accessTokenStore
+    }
+
     func makeAuthSceneDIContainer() -> AuthSceneDIContainer {
         AuthSceneDIContainer(
             httpClient: httpClient,
