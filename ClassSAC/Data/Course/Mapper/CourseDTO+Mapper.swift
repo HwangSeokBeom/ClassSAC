@@ -10,19 +10,16 @@ import Foundation
 extension CourseDTO {
 
     func toEntity() -> Course {
-
-        let dateFormatter = ISO8601DateFormatter()
-
-        return Course(
+        Course(
             id: classID,
-            category: category,
+            category: CourseCategory(rawValue: category) ?? .etc,
             title: title,
             description: description,
             price: price,
             salePrice: salePrice,
             thumbnailURL: imageURL,
             imageURLs: imageURLs ?? [],
-            createdAt: dateFormatter.date(from: createdAt) ?? Date(),
+            createdAt: ISO8601DateFormatter().date(from: createdAt),
             isLiked: isLiked,
             creatorNick: creator.nick
         )

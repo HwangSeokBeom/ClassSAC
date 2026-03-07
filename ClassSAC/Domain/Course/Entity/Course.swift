@@ -8,16 +8,19 @@
 import Foundation
 
 struct Course {
-
     let id: String
-    let category: Int
+    let category: CourseCategory
     let title: String
     let description: String?
     let price: Int?
     let salePrice: Int?
     let thumbnailURL: String?
     let imageURLs: [String]
-    let createdAt: Date
+    let createdAt: Date?
     let isLiked: Bool
     let creatorNick: String
+
+    var coursePrice: CoursePrice {
+        CoursePrice(price: price, salePrice: salePrice)
+    }
 }
