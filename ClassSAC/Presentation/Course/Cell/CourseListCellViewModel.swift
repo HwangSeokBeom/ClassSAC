@@ -10,6 +10,7 @@ import Foundation
 struct CourseListCellViewModel {
     let courseID: String
     let thumbnailImageURLString: String?
+    let categoryTitleText: String
     let title: String
     let creatorNick: String
     let isLiked: Bool
