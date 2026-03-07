@@ -8,27 +8,16 @@
 import Foundation
 
 struct Course {
-    let courseID: String
+
+    let id: String
+    let category: Int
     let title: String
-    let category: CourseCategory
-    let thumbnailImageURLString: String?
-    let originalPrice: Int
-    let discountPrice: Int?
-    let isFree: Bool
+    let description: String?
+    let price: Int?
+    let salePrice: Int?
+    let thumbnailURL: String?
+    let imageURLs: [String]
+    let createdAt: Date
     let isLiked: Bool
-    let instructorName: String?
-    let updatedAt: Date?
-
-    var effectivePrice: Int {
-        if isFree {
-            return 0
-        }
-
-        return discountPrice ?? originalPrice
-    }
-
-    var hasDiscount: Bool {
-        guard let discountPrice else { return false }
-        return discountPrice < originalPrice
-    }
+    let creatorNick: String
 }
