@@ -1,9 +1,4 @@
-//
-//  CourseCommentDTO.swift
-//  ClassSAC
-//
-//  Created by Hwangseokbeom on 3/9/26.
-//
+import Foundation
 
 extension CourseCommentDTO {
 
@@ -12,9 +7,9 @@ extension CourseCommentDTO {
         CourseComment(
             id: commentID,
             content: content,
-            createdAt: ISO8601DateFormatter().date(from: createdAt),
+            createdAt: DateFormatterManager.iso8601.date(from: createdAt),
             writer: CourseCommentWriter(
-                userID: creator.userID,
+                userID: creator.user_id,
                 nick: creator.nick,
                 profileImageURL: creator.profileImage
             )

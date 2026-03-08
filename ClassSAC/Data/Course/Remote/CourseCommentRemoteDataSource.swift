@@ -21,7 +21,7 @@ final class CourseCommentRemoteDataSource {
         Single.create { [httpClient] single in
 
             httpClient.request(
-                ClassSACAPI.fetchCourseComments(courseId: courseID),
+                ClassSACAPI.comments(courseId: courseID),
                 as: CourseCommentListResponseDTO.self
             ) { result in
 

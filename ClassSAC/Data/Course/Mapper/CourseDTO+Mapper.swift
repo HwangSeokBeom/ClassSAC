@@ -19,7 +19,7 @@ extension CourseDTO {
             salePrice: salePrice,
             thumbnailURL: imageURL,
             imageURLs: imageURLs ?? [],
-            createdAt: ISO8601DateFormatter().date(from: createdAt),
+            createdAt: DateFormatterManager.iso8601.date(from: createdAt),
             isLiked: isLiked,
             creatorNick: creator.nick
         )

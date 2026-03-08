@@ -1,5 +1,5 @@
 //
-//  CourseDetailResponseDTO+Mapper.swift
+//  CourseDetail+Extension.swift
 //  ClassSAC
 //
 //  Created by Hwangseokbeom on 3/9/26.
@@ -7,12 +7,12 @@
 
 import Foundation
 
-extension CourseDetailResponseDTO {
+extension CourseDetail {
 
-    func toEntity() -> CourseDetail {
+    func updatingLikeState(_ isLiked: Bool) -> CourseDetail {
         CourseDetail(
-            id: classID,
-            category: CourseCategory(rawValue: category) ?? .etc,
+            id: id,
+            category: category,
             title: title,
             description: description,
             price: price,
@@ -21,11 +21,9 @@ extension CourseDetailResponseDTO {
             date: date,
             capacity: capacity,
             imageURLs: imageURLs,
-            createdAt: createdAt.flatMap {
-                DateFormatterManager.iso8601.date(from: $0)
-            },
+            createdAt: createdAt,
             isLiked: isLiked,
-            creator: creator.toEntity()
+            creator: creator
         )
     }
 }

@@ -1,0 +1,383 @@
+//
+//  CourseDetailViewModel.swift
+//  ClassSAC
+//
+//  Created by Hwangseokbeom on 3/9/26.
+//
+
+import Foundation
+import RxSwift
+import RxCocoa
+
+final class CourseDetailViewModel {
+
+    struct Input {
+        let viewDidLoad: Observable<Void>
+        let viewWillAppear: Observable<Void>
+        let didTapLikeButton: Observable<Void>
+        let didTapMoreCommentsButton: Observable<Void>
+    }
+
+    struct Output {
+        let state: Driver<CourseDetailViewState>
+        let route: Signal<CourseDetailRoute>
+        let showError: Signal<CourseError>
+    }
+
+    private enum Message {
+        static let undecided = "미정"
+        static let noParticipants = "0명 참여 중"
+        static let justNow = "방금 전"
+    }
+
+    private struct PriceState {
+        let originalPriceText: String?
+        let salePriceText: String?
+        let discountPercentText: String?
+        let shouldShowOriginalPrice: Bool
+        let shouldShowSalePrice: Bool
+        let shouldShowDiscountPercent: Bool
+        let isFree: Bool
+
+        static let empty = PriceState(
+            originalPriceText: nil,
+            salePriceText: nil,
+            discountPercentText: nil,
+            shouldShowOriginalPrice: false,
+            shouldShowSalePrice: false,
+            shouldShowDiscountPercent: false,
+            isFree: false
+        )
+    }
+
+    private let courseID: String
+    private let fetchCourseDetailUseCase: FetchCourseDetailUseCase
+    private let fetchCourseCommentsUseCase: FetchCourseCommentsUseCase
+    private let toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+
+    private let disposeBag = DisposeBag()
+
+    private let courseDetailRelay = BehaviorRelay<CourseDetail?>(value: nil)
+    private let commentsRelay = BehaviorRelay<[CourseComment]>(value: [])
+    private let isLoadingRelay = BehaviorRelay<Bool>(value: false)
+    private let errorRelay = PublishRelay<CourseError>()
+
+    init(
+        courseID: String,
+        fetchCourseDetailUseCase: FetchCourseDetailUseCase,
+        fetchCourseCommentsUseCase: FetchCourseCommentsUseCase,
+        toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+    ) {
+        self.courseID = courseID
+        self.fetchCourseDetailUseCase = fetchCourseDetailUseCase
+        self.fetchCourseCommentsUseCase = fetchCourseCommentsUseCase
+        self.toggleCourseLikeUseCase = toggleCourseLikeUseCase
+    }
+
+    func transform(input: Input) -> Output {
+        bindFetchCourseDetail(input: input)
+        bindFetchComments(input: input)
+        bindLikeAction(input: input)
+
+        return Output(
+            state: makeStateDriver(),
+            route: makeRouteSignal(input: input),
+            showError: errorRelay.asSignal()
+        )
+    }
+}
+
+private extension CourseDetailViewModel {
+
+    func bindFetchCourseDetail(input: Input) {
+        input.viewDidLoad
+            .do(onNext: { [weak self] _ in
+                self?.isLoadingRelay.accept(true)
+            })
+            .flatMapLatest { [weak self] _ -> Observable<CourseDetail> in
+                guard let self else { return .empty() }
+
+                return self.fetchCourseDetailUseCase.execute(courseID: self.courseID)
+                    .asObservable()
+                    .do(
+                        onNext: { [weak self] _ in
+                            self?.isLoadingRelay.accept(false)
+                        },
+                        onError: { [weak self] error in
+                            self?.isLoadingRelay.accept(false)
+                            self?.emitCourseError(from: error)
+                        }
+                    )
+                    .catch { _ in .empty() }
+            }
+            .bind(to: courseDetailRelay)
+            .disposed(by: disposeBag)
+    }
+
+    func bindFetchComments(input: Input) {
+        Observable
+            .merge(
+                input.viewDidLoad,
+                input.viewWillAppear.skip(1)
+            )
+            .flatMapLatest { [weak self] _ -> Observable<[CourseComment]> in
+                guard let self else { return .empty() }
+
+                return self.fetchCourseCommentsUseCase.execute(courseID: self.courseID)
+                    .asObservable()
+                    .do(onError: { [weak self] error in
+                        self?.emitCourseError(from: error)
+                    })
+                    .catchAndReturn([])
+            }
+            .bind(to: commentsRelay)
+            .disposed(by: disposeBag)
+    }
+
+    func bindLikeAction(input: Input) {
+        input.didTapLikeButton
+            .withLatestFrom(courseDetailRelay.compactMap { $0 })
+            .flatMapLatest { [weak self] courseDetail -> Observable<Void> in
+                guard let self else { return .empty() }
+
+                let toggledLikeState = !courseDetail.isLiked
+                self.updateLikeStateLocally(isLiked: toggledLikeState)
+
+                return self.toggleCourseLikeUseCase.execute(
+                    courseID: courseDetail.id,
+                    isLiked: toggledLikeState
+                )
+                .asObservable()
+                .do(onError: { [weak self] error in
+                    self?.updateLikeStateLocally(isLiked: courseDetail.isLiked)
+                    self?.emitCourseError(from: error)
+                })
+                .catchAndReturn(())
+            }
+            .subscribe()
+            .disposed(by: disposeBag)
+    }
+
+    func makeStateDriver() -> Driver<CourseDetailViewState> {
+        Observable
+            .combineLatest(
+                courseDetailRelay.asObservable(),
+                commentsRelay.asObservable(),
+                isLoadingRelay.asObservable()
+            )
+            .map { [weak self] courseDetail, comments, isLoading in
+                guard let self else { return Self.emptyState }
+
+                guard let courseDetail else {
+                    return Self.emptyState.copy(isLoading: isLoading)
+                }
+
+                let previewComments = self.previewComments(from: comments)
+                let priceState = self.makePriceState(courseDetail: courseDetail)
+
+                return CourseDetailViewState(
+                    imageURLs: courseDetail.imageURLs,
+                    title: courseDetail.title,
+                    descriptionText: courseDetail.description,
+                    creatorNick: courseDetail.creator.nick,
+                    isLiked: courseDetail.isLiked,
+                    locationText: self.displayText(courseDetail.location),
+                    durationText: self.durationText(from: courseDetail.date),
+                    capacityText: self.capacityText(from: courseDetail.capacity),
+                    originalPriceText: priceState.originalPriceText,
+                    salePriceText: priceState.salePriceText,
+                    discountPercentText: priceState.discountPercentText,
+                    shouldShowOriginalPrice: priceState.shouldShowOriginalPrice,
+                    shouldShowSalePrice: priceState.shouldShowSalePrice,
+                    shouldShowDiscountPercent: priceState.shouldShowDiscountPercent,
+                    isFree: priceState.isFree,
+                    commentCountText: "\(comments.count)명 참여 중",
+                    commentPreviewCellViewModels: previewComments,
+                    isMoreCommentsButtonEnabled: !comments.isEmpty,
+                    isLoading: isLoading
+                )
+            }
+            .asDriver(onErrorJustReturn: Self.emptyState)
+    }
+
+    func makeRouteSignal(input: Input) -> Signal<CourseDetailRoute> {
+        input.didTapMoreCommentsButton
+            .withLatestFrom(commentsRelay.asObservable())
+            .filter { !$0.isEmpty }
+            .map { [courseID] _ in
+                CourseDetailRoute.commentList(courseID: courseID)
+            }
+            .asSignal(onErrorSignalWith: .empty())
+    }
+
+    func previewComments(from comments: [CourseComment]) -> [CourseCommentPreviewCellViewModel] {
+        comments
+            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+            .prefix(2)
+            .map(makeCommentPreviewCellViewModel)
+    }
+
+    func makeCommentPreviewCellViewModel(
+        comment: CourseComment
+    ) -> CourseCommentPreviewCellViewModel {
+        CourseCommentPreviewCellViewModel(
+            commentID: comment.id,
+            writerNick: comment.writer.nick,
+            contentText: comment.content,
+            createdAtText: comment.createdAt?.courseCommentDisplayText ?? Message.justNow
+        )
+    }
+
+    private func makePriceState(courseDetail: CourseDetail) -> PriceState {
+        if let price = courseDetail.price,
+           let salePrice = courseDetail.salePrice {
+
+            if salePrice == 0 {
+                return PriceState(
+                    originalPriceText: nil,
+                    salePriceText: nil,
+                    discountPercentText: nil,
+                    shouldShowOriginalPrice: false,
+                    shouldShowSalePrice: false,
+                    shouldShowDiscountPercent: false,
+                    isFree: true
+                )
+            }
+
+            if price > salePrice {
+                return PriceState(
+                    originalPriceText: CoursePriceFormatter.formattedPrice(price),
+                    salePriceText: CoursePriceFormatter.formattedPrice(salePrice),
+                    discountPercentText: CoursePriceFormatter.formattedDiscountPercent(
+                        originalPrice: price,
+                        salePrice: salePrice
+                    ),
+                    shouldShowOriginalPrice: true,
+                    shouldShowSalePrice: true,
+                    shouldShowDiscountPercent: true,
+                    isFree: false
+                )
+            }
+
+            return PriceState(
+                originalPriceText: nil,
+                salePriceText: CoursePriceFormatter.formattedPrice(price),
+                discountPercentText: nil,
+                shouldShowOriginalPrice: false,
+                shouldShowSalePrice: true,
+                shouldShowDiscountPercent: false,
+                isFree: false
+            )
+        }
+
+        if let price = courseDetail.price {
+            if price == 0 {
+                return PriceState(
+                    originalPriceText: nil,
+                    salePriceText: nil,
+                    discountPercentText: nil,
+                    shouldShowOriginalPrice: false,
+                    shouldShowSalePrice: false,
+                    shouldShowDiscountPercent: false,
+                    isFree: true
+                )
+            }
+
+            return PriceState(
+                originalPriceText: nil,
+                salePriceText: CoursePriceFormatter.formattedPrice(price),
+                discountPercentText: nil,
+                shouldShowOriginalPrice: false,
+                shouldShowSalePrice: true,
+                shouldShowDiscountPercent: false,
+                isFree: false
+            )
+        }
+
+        return .empty
+    }
+
+    func displayText(_ value: String?) -> String {
+        guard let value,
+              !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return Message.undecided
+        }
+        return value
+    }
+
+    func durationText(from minuteString: String?) -> String {
+        guard let minuteString,
+              let totalMinutes = Int(minuteString) else {
+            return Message.undecided
+        }
+
+        let hour = totalMinutes / 60
+        let minute = totalMinutes % 60
+        return "\(hour)시간 \(minute)분"
+    }
+
+    func capacityText(from capacity: Int?) -> String {
+        guard let capacity else { return Message.undecided }
+        return "\(capacity)명"
+    }
+
+    func emitCourseError(from error: Error) {
+        let courseError = (error as? CourseError) ?? .unknown
+        errorRelay.accept(courseError)
+    }
+
+    func updateLikeStateLocally(isLiked: Bool) {
+        guard let currentCourseDetail = courseDetailRelay.value else { return }
+        courseDetailRelay.accept(currentCourseDetail.updatingLikeState(isLiked))
+    }
+
+    static var emptyState: CourseDetailViewState {
+        CourseDetailViewState(
+            imageURLs: [],
+            title: "",
+            descriptionText: "",
+            creatorNick: "",
+            isLiked: false,
+            locationText: Message.undecided,
+            durationText: Message.undecided,
+            capacityText: Message.undecided,
+            originalPriceText: nil,
+            salePriceText: nil,
+            discountPercentText: nil,
+            shouldShowOriginalPrice: false,
+            shouldShowSalePrice: false,
+            shouldShowDiscountPercent: false,
+            isFree: false,
+            commentCountText: Message.noParticipants,
+            commentPreviewCellViewModels: [],
+            isMoreCommentsButtonEnabled: false,
+            isLoading: false
+        )
+    }
+}
+
+private extension CourseDetailViewState {
+    func copy(isLoading: Bool) -> CourseDetailViewState {
+        CourseDetailViewState(
+            imageURLs: imageURLs,
+            title: title,
+            descriptionText: descriptionText,
+            creatorNick: creatorNick,
+            isLiked: isLiked,
+            locationText: locationText,
+            durationText: durationText,
+            capacityText: capacityText,
+            originalPriceText: originalPriceText,
+            salePriceText: salePriceText,
+            discountPercentText: discountPercentText,
+            shouldShowOriginalPrice: shouldShowOriginalPrice,
+            shouldShowSalePrice: shouldShowSalePrice,
+            shouldShowDiscountPercent: shouldShowDiscountPercent,
+            isFree: isFree,
+            commentCountText: commentCountText,
+            commentPreviewCellViewModels: commentPreviewCellViewModels,
+            isMoreCommentsButtonEnabled: isMoreCommentsButtonEnabled,
+            isLoading: isLoading
+        )
+    }
+}

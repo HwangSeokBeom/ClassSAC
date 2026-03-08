@@ -10,5 +10,5 @@ import RxSwift
 
 protocol CourseCommentRepository: AnyObject {
 
-    func fetchComments(courseID: String) -> Single<[CourseComment>]
+    func fetchComments(courseID: String) -> Single<[CourseComment]>
 }
