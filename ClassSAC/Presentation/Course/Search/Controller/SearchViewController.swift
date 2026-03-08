@@ -15,19 +15,21 @@ final class SearchViewController: UIViewController {
     private let rootView = SearchRootView()
     private let viewModel: SearchViewModel
     private let thumbnailProvider: CourseThumbnailProviding
+    private weak var courseFlowCoordinator: CourseFlowCoordinating?
 
     private let disposeBag = DisposeBag()
-
     private let likeButtonTapRelay = PublishRelay<String>()
 
     private var currentCourseCellViewModels: [CourseListCellViewModel] = []
 
     init(
         viewModel: SearchViewModel,
-        thumbnailProvider: CourseThumbnailProviding
+        thumbnailProvider: CourseThumbnailProviding,
+        courseFlowCoordinator: CourseFlowCoordinating
     ) {
         self.viewModel = viewModel
         self.thumbnailProvider = thumbnailProvider
+        self.courseFlowCoordinator = courseFlowCoordinator
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -115,17 +117,7 @@ private extension SearchViewController {
     func bindNavigation(_ output: SearchViewModel.Output) {
         output.route
             .emit(with: self) { owner, route in
-                switch route {
-                case .courseDetail(let courseID):
-                    let detailViewController = UIViewController()
-                    detailViewController.view.backgroundColor = AppColor.bgPrimary
-                    detailViewController.title = courseID
-
-                    owner.navigationController?.pushViewController(
-                        detailViewController,
-                        animated: true
-                    )
-                }
+                owner.courseFlowCoordinator?.handle(route: route, from: owner)
             }
             .disposed(by: disposeBag)
     }

@@ -15,6 +15,7 @@ final class CourseListViewController: UIViewController {
     private let rootView = CourseListRootView()
     private let viewModel: CourseListViewModel
     private let thumbnailProvider: CourseThumbnailProviding
+    private weak var courseFlowCoordinator: CourseFlowCoordinating?
 
     private let disposeBag = DisposeBag()
 
@@ -26,10 +27,12 @@ final class CourseListViewController: UIViewController {
 
     init(
         viewModel: CourseListViewModel,
-        thumbnailProvider: CourseThumbnailProviding
+        thumbnailProvider: CourseThumbnailProviding,
+        courseFlowCoordinator: CourseFlowCoordinating
     ) {
         self.viewModel = viewModel
         self.thumbnailProvider = thumbnailProvider
+        self.courseFlowCoordinator = courseFlowCoordinator
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -156,28 +159,7 @@ private extension CourseListViewController {
     func bindNavigation(_ output: CourseListViewModel.Output) {
         output.route
             .emit(with: self) { owner, route in
-                switch route {
-                case .notifications:
-                    break
-
-                case .profile:
-                    let profileViewController = UIViewController()
-                    profileViewController.view.backgroundColor = AppColor.bgPrimary
-                    profileViewController.title = "프로필"
-                    owner.navigationController?.pushViewController(
-                        profileViewController,
-                        animated: true
-                    )
-
-                case .courseDetail(let courseID):
-                    let detailViewController = UIViewController()
-                    detailViewController.view.backgroundColor = AppColor.bgPrimary
-                    detailViewController.title = courseID
-                    owner.navigationController?.pushViewController(
-                        detailViewController,
-                        animated: true
-                    )
-                }
+                owner.courseFlowCoordinator?.handle(route: route, from: owner)
             }
             .disposed(by: disposeBag)
     }

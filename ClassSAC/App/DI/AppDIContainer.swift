@@ -35,10 +35,4 @@ final class AppDIContainer {
             accessTokenStore: accessTokenStore
         )
     }
-
-    func makeMainTabBarController() -> MainTabBarController {
-        MainTabBarController(
-            courseSceneDIContainer: makeCourseSceneDIContainer()
-        )
-    }
 }

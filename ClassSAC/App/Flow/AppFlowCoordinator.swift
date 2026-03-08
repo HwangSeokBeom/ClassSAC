@@ -13,6 +13,7 @@ final class AppFlowCoordinator {
     private let appDIContainer: AppDIContainer
 
     private var authFlowCoordinator: AuthFlowCoordinator?
+    private var courseFlowCoordinator: CourseFlowCoordinator?
 
     init(
         navigationController: UINavigationController,
@@ -35,14 +36,23 @@ final class AppFlowCoordinator {
     }
 
     private func handleSessionExpired() {
-
         let accessTokenStore = appDIContainer.makeAccessTokenStore()
         accessTokenStore.clear()
 
+        courseFlowCoordinator = nil
+        showAuthFlow()
+    }
+
+    private func handleLogoutRequested() {
+        let accessTokenStore = appDIContainer.makeAccessTokenStore()
+        accessTokenStore.clear()
+
+        courseFlowCoordinator = nil
         showAuthFlow()
     }
 
     private func showAuthFlow() {
+        courseFlowCoordinator = nil
 
         let authSceneDIContainer = appDIContainer.makeAuthSceneDIContainer()
 
@@ -68,12 +78,21 @@ final class AppFlowCoordinator {
     }
 
     private func showMainTabBar() {
+        let courseSceneDIContainer = appDIContainer.makeCourseSceneDIContainer()
 
-        let mainTabBarController = appDIContainer.makeMainTabBarController()
+        let courseFlowCoordinator = CourseFlowCoordinator(
+            courseSceneDIContainer: courseSceneDIContainer,
+            onLogoutRequested: { [weak self] in
+                self?.handleLogoutRequested()
+            }
+        )
+
+        let mainTabBarController = courseFlowCoordinator.start()
+
+        self.courseFlowCoordinator = courseFlowCoordinator
 
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first {
-
             window.rootViewController = mainTabBarController
             window.makeKeyAndVisible()
         }
