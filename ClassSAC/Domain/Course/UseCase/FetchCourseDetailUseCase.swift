@@ -9,5 +9,5 @@ import Foundation
 import RxSwift
 
 protocol FetchCourseDetailUseCase {
-    func execute(courseID: String) -> Single<Course>
+    func execute(courseID: String) -> Single<CourseDetail>
 }

@@ -16,7 +16,7 @@ final class DefaultFetchCourseDetailUseCase: FetchCourseDetailUseCase {
         self.courseRepository = courseRepository
     }
 
-    func execute(courseID: String) -> Single<Course> {
+    func execute(courseID: String) -> Single<CourseDetail> {
         courseRepository.fetchCourseDetail(courseID: courseID)
     }
 }

@@ -23,9 +23,19 @@ final class DefaultCourseRepository: CourseRepository {
                 response.data.map { $0.toEntity() }
             }
             .catch { [weak self] error in
-                guard let self else {
-                    return .error(CourseError.unknown)
-                }
+                guard let self else { return .error(CourseError.unknown) }
+                return .error(self.mapError(error))
+            }
+    }
+
+    func fetchCourseDetail(courseID: String) -> Single<CourseDetail> {
+        remoteDataSource
+            .fetchCourseDetail(courseID: courseID)
+            .map { responseDTO in
+                responseDTO.toEntity()
+            }
+            .catch { [weak self] error in
+                guard let self else { return .error(CourseError.unknown) }
                 return .error(self.mapError(error))
             }
     }
@@ -33,13 +43,11 @@ final class DefaultCourseRepository: CourseRepository {
     func searchCourses(query: String) -> Single<[Course]> {
         remoteDataSource
             .searchCourses(query: query)
-            .map { response in
-                response.data.map { $0.toEntity() }
+            .map { responseDTO in
+                responseDTO.data.map { $0.toEntity() }
             }
             .catch { [weak self] error in
-                guard let self else {
-                    return .error(CourseError.unknown)
-                }
+                guard let self else { return .error(CourseError.unknown) }
                 return .error(self.mapError(error))
             }
     }
@@ -54,15 +62,13 @@ final class DefaultCourseRepository: CourseRepository {
                 isLiked: isLiked
             )
             .catch { [weak self] error in
-                guard let self else {
-                    return .error(CourseError.unknown)
-                }
+                guard let self else { return .error(CourseError.unknown) }
                 return .error(self.mapError(error))
             }
     }
 }
 
-private extension DefaultCourseRepository {
+extension DefaultCourseRepository {
 
     func mapError(_ error: Error) -> CourseError {
         guard let apiError = error as? ClassSACAPIError else {
