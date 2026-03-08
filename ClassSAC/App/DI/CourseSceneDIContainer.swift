@@ -51,4 +51,20 @@ final class CourseSceneDIContainer {
             thumbnailProvider: thumbnailProvider
         )
     }
+    
+    private func makeSearchCoursesUseCase() -> SearchCoursesUseCase {
+        DefaultSearchCoursesUseCase(courseRepository: courseRepository)
+    }
+
+    func makeSearchViewController() -> SearchViewController {
+        let searchViewModel = SearchViewModel(
+            searchCoursesUseCase: makeSearchCoursesUseCase(),
+            toggleCourseLikeUseCase: makeToggleCourseLikeUseCase()
+        )
+
+        return SearchViewController(
+            viewModel: searchViewModel,
+            thumbnailProvider: thumbnailProvider
+        )
+    }
 }
