@@ -33,7 +33,7 @@ final class MainTabBarController: UITabBarController {
 
     private func configureViewControllers() {
         let listViewController = courseSceneDIContainer.makeCourseListViewController()
-        let searchViewController = SearchViewController()
+        let searchViewController = courseSceneDIContainer.makeSearchViewController()
         let favoriteViewController = FavoriteViewController()
 
         let listNavigationController = UINavigationController(rootViewController: listViewController)
