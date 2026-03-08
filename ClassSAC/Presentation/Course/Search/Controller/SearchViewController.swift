@@ -98,8 +98,8 @@ private extension SearchViewController {
             .drive(with: self) { owner, state in
                 owner.currentCourseCellViewModels = state.courses
 
-                owner.rootView.emptyMessageLabel.text = state.emptyMessage
-                owner.rootView.emptyMessageLabel.isHidden = state.emptyMessage == nil
+                owner.rootView.emptyMessageLabel.text = state.emptyState.message
+                owner.rootView.emptyMessageLabel.isHidden = state.emptyState == .none
 
                 if state.isLoading {
                     owner.rootView.loadingIndicatorView.startAnimating()
