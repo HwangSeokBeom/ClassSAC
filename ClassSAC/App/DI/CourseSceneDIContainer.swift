@@ -10,7 +10,7 @@
 //  ClassSAC
 //
 
-import Foundation
+import UIKit
 
 final class CourseSceneDIContainer {
 

@@ -9,62 +9,14 @@ import UIKit
 
 final class MainTabBarController: UITabBarController {
 
-    private let courseSceneDIContainer: CourseSceneDIContainer
-
-    init(courseSceneDIContainer: CourseSceneDIContainer) {
-        self.courseSceneDIContainer = courseSceneDIContainer
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         configureView()
-        configureViewControllers()
         configureTabBarAppearance()
     }
 
     private func configureView() {
         view.backgroundColor = AppColor.bgPrimary
-    }
-
-    private func configureViewControllers() {
-        let listViewController = courseSceneDIContainer.makeCourseListViewController()
-        let searchViewController = courseSceneDIContainer.makeSearchViewController()
-        let favoriteViewController = FavoriteViewController()
-
-        let listNavigationController = UINavigationController(rootViewController: listViewController)
-        let searchNavigationController = UINavigationController(rootViewController: searchViewController)
-        let favoriteNavigationController = UINavigationController(rootViewController: favoriteViewController)
-
-        listNavigationController.tabBarItem = UITabBarItem(
-            title: "조회",
-            image: AppIcon.book.image,
-            selectedImage: AppIcon.book.image
-        )
-
-        searchNavigationController.tabBarItem = UITabBarItem(
-            title: "검색",
-            image: AppIcon.search.image,
-            selectedImage: AppIcon.search.image
-        )
-
-        favoriteNavigationController.tabBarItem = UITabBarItem(
-            title: "찜",
-            image: AppIcon.heart.image,
-            selectedImage: AppIcon.heartFill.image
-        )
-
-        viewControllers = [
-            listNavigationController,
-            searchNavigationController,
-            favoriteNavigationController
-        ]
-
-        selectedIndex = 0
     }
 
     private func configureTabBarAppearance() {
