@@ -8,5 +8,5 @@
 struct SearchViewState {
     let courses: [CourseListCellViewModel]
     let isLoading: Bool
-    let emptyMessage: String?
+    let emptyState: SearchEmptyState
 }

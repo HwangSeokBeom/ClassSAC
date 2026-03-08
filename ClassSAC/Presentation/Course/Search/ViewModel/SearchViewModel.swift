@@ -138,30 +138,32 @@ private extension SearchViewModel {
                 latestSearchKeywordRelay.asObservable()
             )
             .map { courses, isLoading, latestSearchKeyword in
+                
                 let courseCellViewModels = courses.map(CourseListCellViewModelMapper.map)
 
-                let emptyMessage: String?
+                let emptyState: SearchEmptyState
+                
                 if isLoading {
-                    emptyMessage = nil
+                    emptyState = .none
                 } else if latestSearchKeyword == nil {
-                    emptyMessage = "검색어를 입력해 클래스를 검색해보세요."
+                    emptyState = .initial
                 } else if courseCellViewModels.isEmpty {
-                    emptyMessage = "검색 결과가 없습니다."
+                    emptyState = .noResult
                 } else {
-                    emptyMessage = nil
+                    emptyState = .none
                 }
 
                 return SearchViewState(
                     courses: courseCellViewModels,
                     isLoading: isLoading,
-                    emptyMessage: emptyMessage
+                    emptyState: emptyState
                 )
             }
             .asDriver(
                 onErrorJustReturn: SearchViewState(
                     courses: [],
                     isLoading: false,
-                    emptyMessage: "오류가 발생했습니다."
+                    emptyState: .initial
                 )
             )
     }

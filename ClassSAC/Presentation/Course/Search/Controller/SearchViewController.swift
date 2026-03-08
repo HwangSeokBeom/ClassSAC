@@ -40,7 +40,7 @@ final class SearchViewController: UIViewController {
     override func loadView() {
         view = rootView
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: false)
@@ -60,8 +60,8 @@ final class SearchViewController: UIViewController {
 private extension SearchViewController {
 
     func bind() {
-        let searchButtonClicked = rootView.searchTextField.rx.controlEvent(.editingDidEndOnExit)
-            .withLatestFrom(rootView.searchTextField.rx.text.orEmpty)
+        let searchButtonClicked = rootView.searchBar.rx.searchButtonClicked
+            .withLatestFrom(rootView.searchBar.rx.text.orEmpty)
             .asObservable()
 
         let courseItemSelected = rootView.courseCollectionView.rx
@@ -77,11 +77,20 @@ private extension SearchViewController {
 
         let output = viewModel.transform(input: input)
 
+        bindSearchBar()
         bindState(output)
         bindCourseCollectionView(output)
         bindNavigation(output)
         bindError(output)
         bindCollectionViewDelegate()
+    }
+
+    func bindSearchBar() {
+        rootView.searchBar.rx.searchButtonClicked
+            .bind(with: self) { owner, _ in
+                owner.rootView.searchBar.resignFirstResponder()
+            }
+            .disposed(by: disposeBag)
     }
 
     func bindState(_ output: SearchViewModel.Output) {
@@ -160,7 +169,6 @@ extension SearchViewController: UICollectionViewDelegateFlowLayout {
         let columnCount = searchColumnCount()
         let totalSpacing = interItemSpacing * CGFloat(columnCount - 1)
         let itemWidth = floor((sectionWidth - totalSpacing) / CGFloat(columnCount))
-
         let itemHeight = itemWidth + searchCellExtraHeight()
 
         return CGSize(width: itemWidth, height: itemHeight)
