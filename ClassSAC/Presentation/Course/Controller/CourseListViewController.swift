@@ -245,9 +245,68 @@ extension CourseListViewController: UICollectionViewDelegateFlowLayout {
         }
 
         let horizontalInset: CGFloat = 22
-        let spacing: CGFloat = 14
-        let width = (collectionView.bounds.width - (horizontalInset * 2) - spacing) / 2
+        let interItemSpacing: CGFloat = 14
+        let sectionWidth = collectionView.bounds.width - (horizontalInset * 2)
 
-        return CGSize(width: width, height: width + 120)
+        let columnCount = courseColumnCount()
+        let totalSpacing = interItemSpacing * CGFloat(columnCount - 1)
+        let itemWidth = floor((sectionWidth - totalSpacing) / CGFloat(columnCount))
+        let itemHeight = itemWidth + courseCellExtraHeight()
+
+        return CGSize(width: itemWidth, height: itemHeight)
+    }
+
+    private func courseColumnCount() -> Int {
+        if traitCollection.userInterfaceIdiom == .pad,
+           view.bounds.height >= view.bounds.width {
+            return 3
+        }
+
+        return 2
+    }
+
+    private func courseCellExtraHeight() -> CGFloat {
+        if traitCollection.userInterfaceIdiom == .pad,
+           view.bounds.height >= view.bounds.width {
+            return 132
+        }
+
+        return 120
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        minimumLineSpacingForSectionAt section: Int
+    ) -> CGFloat {
+        if collectionView == rootView.categoryCollectionView {
+            return 8
+        }
+
+        return 18
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        minimumInteritemSpacingForSectionAt section: Int
+    ) -> CGFloat {
+        if collectionView == rootView.categoryCollectionView {
+            return 8
+        }
+
+        return 14
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        insetForSectionAt section: Int
+    ) -> UIEdgeInsets {
+        if collectionView == rootView.categoryCollectionView {
+            return .zero
+        }
+
+        return UIEdgeInsets(top: 0, left: 22, bottom: 0, right: 22)
     }
 }
