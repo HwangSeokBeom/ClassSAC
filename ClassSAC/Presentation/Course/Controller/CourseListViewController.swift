@@ -18,14 +18,12 @@ final class CourseListViewController: UIViewController {
 
     private let disposeBag = DisposeBag()
 
-    private let viewDidLoadRelay = PublishRelay<Void>()
     private let latestSortTapRelay = PublishRelay<Void>()
     private let originalPriceDescendingSortTapRelay = PublishRelay<Void>()
     private let likeButtonTapRelay = PublishRelay<String>()
 
-    private let selectedCategoryItemsRelay = BehaviorRelay<Set<CourseCategoryItem>>(value: [.all])
-    private let categoryItemsRelay = BehaviorRelay<[CourseCategoryItem]>(value: [])
-    private let courseCellViewModelsRelay = BehaviorRelay<[CourseListCellViewModel]>(value: [])
+    private var currentCategoryCellViewModels: [CourseCategoryCellViewModel] = []
+    private var currentCourseCellViewModels: [CourseListCellViewModel] = []
 
     init(
         viewModel: CourseListViewModel,
@@ -57,116 +55,77 @@ final class CourseListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         bind()
-        viewDidLoadRelay.accept(())
     }
 
     private func bind() {
+        let categoryItemSelected = rootView.categoryCollectionView.rx
+            .modelSelected(CourseCategoryCellViewModel.self)
+            .map(\.item)
+            .asObservable()
+
+        let courseItemSelected = rootView.courseCollectionView.rx
+            .modelSelected(CourseListCellViewModel.self)
+            .map(\.courseID)
+            .asObservable()
+
         let input = CourseListViewModel.Input(
-            viewDidLoad: viewDidLoadRelay.asObservable(),
+            viewDidLoad: Observable.just(()),
             didTapNotificationButton: rootView.notificationButton.rx.tap.asObservable(),
             didTapProfileButton: rootView.profileButton.rx.tap.asObservable(),
-            didTapCategoryItem: rootView.categoryCollectionView.rx.modelSelected(CourseCategoryItem.self).asObservable(),
+            didTapCategoryItem: categoryItemSelected,
             didTapLatestSortButton: latestSortTapRelay.asObservable(),
             didTapOriginalPriceDescendingSortButton: originalPriceDescendingSortTapRelay.asObservable(),
-            didTapCourseCell: rootView.courseCollectionView.rx.modelSelected(CourseListCellViewModel.self).map(\.courseID).asObservable(),
+            didTapCourseCell: courseItemSelected,
             didTapLikeButton: likeButtonTapRelay.asObservable()
         )
 
         let output = viewModel.transform(input: input)
 
-        output.categoryItems
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { owner, categoryItems in
-                owner.categoryItemsRelay.accept(categoryItems)
-                owner.rootView.categoryCollectionView.reloadData()
+        bindState(output)
+        bindCategoryCollectionView(output)
+        bindCourseCollectionView(output)
+        bindNavigation(output)
+        bindError(output)
+        bindSortAction()
+        bindCollectionViewDelegate()
+    }
+}
+
+private extension CourseListViewController {
+
+    func bindState(_ output: CourseListViewModel.Output) {
+        output.state
+            .drive(with: self) { owner, state in
+                owner.currentCategoryCellViewModels = state.categories
+                owner.currentCourseCellViewModels = state.courses
+                owner.rootView.courseCountLabel.text = state.courseCountText
+                owner.rootView.updateSortButtonTitle(sortType: state.selectedSortType)
             }
             .disposed(by: disposeBag)
+    }
 
-        output.selectedCategoryItems
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { owner, selectedCategoryItems in
-                owner.selectedCategoryItemsRelay.accept(selectedCategoryItems)
-                owner.rootView.categoryCollectionView.reloadData()
-            }
-            .disposed(by: disposeBag)
-
-        output.courseCellViewModels
-            .observe(on: MainScheduler.instance)
-            .bind(to: courseCellViewModelsRelay)
-            .disposed(by: disposeBag)
-
-        output.selectedSortType
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { owner, sortType in
-                owner.rootView.updateSortButtonTitle(sortType: sortType)
-            }
-            .disposed(by: disposeBag)
-
-        output.courseCountText
-            .observe(on: MainScheduler.instance)
-            .bind(to: rootView.courseCountLabel.rx.text)
-            .disposed(by: disposeBag)
-
-        output.showErrorMessage
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { owner, message in
-                owner.showAlert(message: message)
-            }
-            .disposed(by: disposeBag)
-
-        output.routeToNotifications
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { _, _ in
-            }
-            .disposed(by: disposeBag)
-
-        output.routeToProfile
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { owner, _ in
-                let profileViewController = UIViewController()
-                profileViewController.view.backgroundColor = AppColor.bgPrimary
-                profileViewController.title = "프로필"
-                owner.navigationController?.pushViewController(profileViewController, animated: true)
-            }
-            .disposed(by: disposeBag)
-
-        output.routeToCourseDetail
-            .observe(on: MainScheduler.instance)
-            .bind(with: self) { owner, courseID in
-                let detailViewController = UIViewController()
-                detailViewController.view.backgroundColor = AppColor.bgPrimary
-                detailViewController.title = courseID
-                owner.navigationController?.pushViewController(detailViewController, animated: true)
-            }
-            .disposed(by: disposeBag)
-
-        rootView.sortButton.rx.tap
-            .bind(with: self) { owner, _ in
-                owner.presentSortActionSheet()
-            }
-            .disposed(by: disposeBag)
-
-        categoryItemsRelay
-            .bind(
-                to: rootView.categoryCollectionView.rx.items(
+    func bindCategoryCollectionView(_ output: CourseListViewModel.Output) {
+        output.state
+            .map(\.categories)
+            .drive(
+                rootView.categoryCollectionView.rx.items(
                     cellIdentifier: CourseCategoryCollectionViewCell.identifier,
                     cellType: CourseCategoryCollectionViewCell.self
                 )
-            ) { [weak self] _, categoryItem, cell in
-                guard let self else { return }
-
-                let isSelected = self.selectedCategoryItemsRelay.value.contains(categoryItem)
-
+            ) { _, cellViewModel, cell in
                 cell.configure(
-                    title: categoryItem.title,
-                    isSelected: isSelected
+                    title: cellViewModel.title,
+                    isSelected: cellViewModel.isSelected
                 )
             }
             .disposed(by: disposeBag)
+    }
 
-        courseCellViewModelsRelay
-            .bind(
-                to: rootView.courseCollectionView.rx.items(
+    func bindCourseCollectionView(_ output: CourseListViewModel.Output) {
+        output.state
+            .map(\.courses)
+            .drive(
+                rootView.courseCollectionView.rx.items(
                     cellIdentifier: CourseListCollectionViewCell.identifier,
                     cellType: CourseListCollectionViewCell.self
                 )
@@ -183,7 +142,54 @@ final class CourseListViewController: UIViewController {
                 }
             }
             .disposed(by: disposeBag)
+    }
 
+    func bindNavigation(_ output: CourseListViewModel.Output) {
+        output.route
+            .emit(with: self) { owner, route in
+                switch route {
+                case .notifications:
+                    break
+
+                case .profile:
+                    let profileViewController = UIViewController()
+                    profileViewController.view.backgroundColor = AppColor.bgPrimary
+                    profileViewController.title = "프로필"
+                    owner.navigationController?.pushViewController(
+                        profileViewController,
+                        animated: true
+                    )
+
+                case .courseDetail(let courseID):
+                    let detailViewController = UIViewController()
+                    detailViewController.view.backgroundColor = AppColor.bgPrimary
+                    detailViewController.title = courseID
+                    owner.navigationController?.pushViewController(
+                        detailViewController,
+                        animated: true
+                    )
+                }
+            }
+            .disposed(by: disposeBag)
+    }
+
+    func bindError(_ output: CourseListViewModel.Output) {
+        output.showErrorMessage
+            .emit(with: self) { owner, message in
+                owner.showAlert(message: message)
+            }
+            .disposed(by: disposeBag)
+    }
+
+    func bindSortAction() {
+        rootView.sortButton.rx.tap
+            .bind(with: self) { owner, _ in
+                owner.presentSortActionSheet()
+            }
+            .disposed(by: disposeBag)
+    }
+
+    func bindCollectionViewDelegate() {
         rootView.categoryCollectionView.rx.setDelegate(self)
             .disposed(by: disposeBag)
 
@@ -191,7 +197,7 @@ final class CourseListViewController: UIViewController {
             .disposed(by: disposeBag)
     }
 
-    private func presentSortActionSheet() {
+    func presentSortActionSheet() {
         let alertController = UIAlertController(
             title: "정렬",
             message: nil,
@@ -226,10 +232,11 @@ extension CourseListViewController: UICollectionViewDelegateFlowLayout {
         sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
         if collectionView == rootView.categoryCollectionView {
-            let categoryItems = categoryItemsRelay.value
-            guard categoryItems.indices.contains(indexPath.item) else { return .zero }
+            guard currentCategoryCellViewModels.indices.contains(indexPath.item) else {
+                return .zero
+            }
 
-            let title = categoryItems[indexPath.item].title
+            let title = currentCategoryCellViewModels[indexPath.item].title
             let width = (title as NSString).size(
                 withAttributes: [.font: AppFont.caption.font]
             ).width + 28

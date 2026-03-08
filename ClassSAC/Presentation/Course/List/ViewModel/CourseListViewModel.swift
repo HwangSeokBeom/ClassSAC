@@ -8,6 +8,7 @@
 import Foundation
 import RxSwift
 import RxRelay
+import RxCocoa
 
 final class CourseListViewModel {
 
@@ -23,15 +24,9 @@ final class CourseListViewModel {
     }
 
     struct Output {
-        let categoryItems: Observable<[CourseCategoryItem]>
-        let selectedCategoryItems: Observable<Set<CourseCategoryItem>>
-        let selectedSortType: Observable<CourseSortType>
-        let courseCountText: Observable<String>
-        let courseCellViewModels: Observable<[CourseListCellViewModel]>
-        let showErrorMessage: Observable<String>
-        let routeToNotifications: Observable<Void>
-        let routeToProfile: Observable<Void>
-        let routeToCourseDetail: Observable<String>
+        let state: Driver<CourseListViewState>
+        let route: Signal<CourseListRoute>
+        let showErrorMessage: Signal<String>
     }
 
     private let fetchCoursesUseCase: FetchCoursesUseCase
@@ -43,7 +38,6 @@ final class CourseListViewModel {
     private let selectedCategoryItemsRelay = BehaviorRelay<Set<CourseCategoryItem>>(value: [.all])
     private let selectedSortTypeRelay = BehaviorRelay<CourseSortType>(value: .latest)
     private let errorMessageRelay = PublishRelay<String>()
-    private let likeActionCompletedRelay = PublishRelay<Void>()
 
     private let categoryItems: [CourseCategoryItem] = [
         .all,
@@ -65,33 +59,97 @@ final class CourseListViewModel {
     }
 
     func transform(input: Input) -> Output {
+        bindFetchCourses(input: input)
+        bindCategorySelection(input: input)
+        bindSortSelection(input: input)
+        bindLikeAction(input: input)
 
+        let coursesObservable = makeFilteredAndSortedCoursesObservable()
+
+        let state = Observable
+            .combineLatest(
+                makeCategoryCellViewModelsObservable(),
+                coursesObservable,
+                selectedSortTypeRelay.asObservable()
+            )
+            .map { [weak self] categories, courses, sortType -> CourseListViewState in
+                guard let self else {
+                    return CourseListViewState(
+                        categories: [],
+                        courses: [],
+                        courseCountText: "0개",
+                        selectedSortType: .latest
+                    )
+                }
+
+                let courseCellViewModels = courses.map {
+                    self.makeCourseListCellViewModel(course: $0)
+                }
+
+                return CourseListViewState(
+                    categories: categories,
+                    courses: courseCellViewModels,
+                    courseCountText: "\(courseCellViewModels.count)개",
+                    selectedSortType: sortType
+                )
+            }
+            .asDriver(onErrorDriveWith: .empty())
+
+        let route = Signal.merge(
+            input.didTapNotificationButton
+                .map { CourseListRoute.notifications }
+                .asSignal(onErrorSignalWith: .empty()),
+
+            input.didTapProfileButton
+                .map { CourseListRoute.profile }
+                .asSignal(onErrorSignalWith: .empty()),
+
+            input.didTapCourseCell
+                .map { CourseListRoute.courseDetail(courseID: $0) }
+                .asSignal(onErrorSignalWith: .empty())
+        )
+
+        return Output(
+            state: state,
+            route: route,
+            showErrorMessage: errorMessageRelay.asSignal()
+        )
+    }
+}
+
+private extension CourseListViewModel {
+
+    func bindFetchCourses(input: Input) {
         input.viewDidLoad
             .flatMapLatest { [weak self] _ -> Observable<[Course]> in
-                guard let self else { return Observable.empty() }
+                guard let self else { return .empty() }
 
                 return self.fetchCoursesUseCase.execute()
                     .asObservable()
                     .do(onError: { [weak self] error in
-                        self?.errorMessageRelay.accept(self?.errorMessage(from: error) ?? "오류가 발생했습니다.")
+                        self?.errorMessageRelay.accept(
+                            self?.errorMessage(from: error) ?? "오류가 발생했습니다."
+                        )
                     })
                     .catchAndReturn([])
             }
             .bind(to: allCoursesRelay)
             .disposed(by: disposeBag)
+    }
 
+    func bindCategorySelection(input: Input) {
         input.didTapCategoryItem
-            .withLatestFrom(selectedCategoryItemsRelay.asObservable()) { [weak self] tappedCategoryItem, selectedCategoryItems in
-                guard let self else { return selectedCategoryItems }
-
-                return self.updatedSelectedCategoryItems(
+            .withLatestFrom(selectedCategoryItemsRelay) { [weak self] tappedCategoryItem, selectedCategoryItems in
+                self?.updatedSelectedCategoryItems(
                     tappedCategoryItem: tappedCategoryItem,
                     selectedCategoryItems: selectedCategoryItems
-                )
+                ) ?? selectedCategoryItems
             }
             .bind(to: selectedCategoryItemsRelay)
             .disposed(by: disposeBag)
+    }
 
+    func bindSortSelection(input: Input) {
         input.didTapLatestSortButton
             .map { CourseSortType.latest }
             .bind(to: selectedSortTypeRelay)
@@ -101,34 +159,15 @@ final class CourseListViewModel {
             .map { CourseSortType.originalPriceDescending }
             .bind(to: selectedSortTypeRelay)
             .disposed(by: disposeBag)
+    }
 
-        let filteredAndSortedCoursesObservable = Observable
-            .combineLatest(
-                allCoursesRelay.asObservable(),
-                selectedCategoryItemsRelay.asObservable(),
-                selectedSortTypeRelay.asObservable()
-            )
-            .map { [weak self] courses, selectedCategoryItems, selectedSortType -> [Course] in
-                guard let self else { return [] }
-
-                let filteredCourses = self.filteredCourses(
-                    courses: courses,
-                    selectedCategoryItems: selectedCategoryItems
-                )
-
-                return self.sortedCourses(
-                    courses: filteredCourses,
-                    selectedSortType: selectedSortType
-                )
-            }
-            .share(replay: 1, scope: .whileConnected)
-
+    func bindLikeAction(input: Input) {
         input.didTapLikeButton
             .compactMap { [weak self] courseID -> Course? in
                 self?.course(with: courseID)
             }
             .flatMapLatest { [weak self] course -> Observable<Void> in
-                guard let self else { return Observable.empty() }
+                guard let self else { return .empty() }
 
                 let toggledLikeState = !course.isLiked
 
@@ -147,39 +186,55 @@ final class CourseListViewModel {
                         courseID: course.id,
                         isLiked: course.isLiked
                     )
-                    self?.errorMessageRelay.accept(self?.errorMessage(from: error) ?? "오류가 발생했습니다.")
+                    self?.errorMessageRelay.accept(
+                        self?.errorMessage(from: error) ?? "오류가 발생했습니다."
+                    )
                 })
                 .catchAndReturn(())
             }
-            .bind(to: likeActionCompletedRelay)
+            .subscribe()
             .disposed(by: disposeBag)
-
-        let courseCellViewModelsObservable = filteredAndSortedCoursesObservable
-            .map { [weak self] courses -> [CourseListCellViewModel] in
-                guard let self else { return [] }
-                return courses.map { self.makeCourseListCellViewModel(course: $0) }
-            }
-
-        let courseCountTextObservable = filteredAndSortedCoursesObservable
-            .map { "\($0.count)개" }
-
-        let routeToCourseDetailObservable = input.didTapCourseCell
-
-        return Output(
-            categoryItems: Observable.just(categoryItems),
-            selectedCategoryItems: selectedCategoryItemsRelay.asObservable(),
-            selectedSortType: selectedSortTypeRelay.asObservable(),
-            courseCountText: courseCountTextObservable,
-            courseCellViewModels: courseCellViewModelsObservable,
-            showErrorMessage: errorMessageRelay.asObservable(),
-            routeToNotifications: input.didTapNotificationButton,
-            routeToProfile: input.didTapProfileButton,
-            routeToCourseDetail: routeToCourseDetailObservable
-        )
     }
-}
 
-private extension CourseListViewModel {
+    func makeFilteredAndSortedCoursesObservable() -> Observable<[Course]> {
+        Observable
+            .combineLatest(
+                allCoursesRelay.asObservable(),
+                selectedCategoryItemsRelay.asObservable(),
+                selectedSortTypeRelay.asObservable()
+            )
+            .map { [weak self] courses, selectedCategoryItems, selectedSortType in
+                guard let self else { return [] }
+
+                let filteredCourses = self.filteredCourses(
+                    courses: courses,
+                    selectedCategoryItems: selectedCategoryItems
+                )
+
+                return self.sortedCourses(
+                    courses: filteredCourses,
+                    selectedSortType: selectedSortType
+                )
+            }
+            .share(replay: 1, scope: .whileConnected)
+    }
+
+    func makeCategoryCellViewModelsObservable() -> Observable<[CourseCategoryCellViewModel]> {
+        Observable
+            .combineLatest(
+                Observable.just(categoryItems),
+                selectedCategoryItemsRelay.asObservable()
+            )
+            .map { categoryItems, selectedCategoryItems in
+                categoryItems.map { categoryItem in
+                    CourseCategoryCellViewModel(
+                        item: categoryItem,
+                        title: categoryItem.title,
+                        isSelected: selectedCategoryItems.contains(categoryItem)
+                    )
+                }
+            }
+    }
 
     func errorMessage(from error: Error) -> String {
         if let apiError = error as? ClassSACAPIError {
@@ -193,7 +248,6 @@ private extension CourseListViewModel {
         tappedCategoryItem: CourseCategoryItem,
         selectedCategoryItems: Set<CourseCategoryItem>
     ) -> Set<CourseCategoryItem> {
-
         switch tappedCategoryItem {
         case .all:
             return [.all]
@@ -216,7 +270,6 @@ private extension CourseListViewModel {
         courses: [Course],
         selectedCategoryItems: Set<CourseCategoryItem>
     ) -> [Course] {
-
         if selectedCategoryItems.contains(.all) {
             return courses
         }
@@ -237,7 +290,6 @@ private extension CourseListViewModel {
         courses: [Course],
         selectedSortType: CourseSortType
     ) -> [Course] {
-
         switch selectedSortType {
         case .latest:
             return courses.sorted {
