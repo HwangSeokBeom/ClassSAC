@@ -20,7 +20,7 @@ final class SearchViewModel {
     struct Output {
         let state: Driver<SearchViewState>
         let route: Signal<SearchRoute>
-        let showErrorMessage: Signal<String>
+        let showError: Signal<CourseError>
     }
 
     private let searchCoursesUseCase: SearchCoursesUseCase
@@ -30,7 +30,7 @@ final class SearchViewModel {
 
     private let searchedCoursesRelay = BehaviorRelay<[Course]>(value: [])
     private let isLoadingRelay = BehaviorRelay<Bool>(value: false)
-    private let errorMessageRelay = PublishRelay<String>()
+    private let errorRelay = PublishRelay<CourseError>()
     private let latestSearchKeywordRelay = BehaviorRelay<String?>(value: nil)
 
     init(
@@ -45,42 +45,7 @@ final class SearchViewModel {
         bindSearch(input: input)
         bindLikeAction(input: input)
 
-        let state = Observable
-            .combineLatest(
-                searchedCoursesRelay.asObservable(),
-                isLoadingRelay.asObservable()
-            )
-            .map { [weak self] courses, isLoading -> SearchViewState in
-                guard let self else {
-                    return SearchViewState(
-                        courses: [],
-                        isLoading: false,
-                        emptyMessage: nil
-                    )
-                }
-
-                let courseCellViewModels = courses.map {
-                    self.makeCourseListCellViewModel(course: $0)
-                }
-
-                let emptyMessage: String?
-                if isLoading {
-                    emptyMessage = nil
-                } else if latestSearchKeywordRelay.value == nil {
-                    emptyMessage = "검색어를 입력해 클래스를 검색해보세요."
-                } else if courseCellViewModels.isEmpty {
-                    emptyMessage = "검색 결과가 없습니다."
-                } else {
-                    emptyMessage = nil
-                }
-
-                return SearchViewState(
-                    courses: courseCellViewModels,
-                    isLoading: isLoading,
-                    emptyMessage: emptyMessage
-                )
-            }
-            .asDriver(onErrorDriveWith: .empty())
+        let state = makeStateDriver()
 
         let route = input.didTapCourseCell
             .map { SearchRoute.courseDetail(courseID: $0) }
@@ -89,7 +54,7 @@ final class SearchViewModel {
         return Output(
             state: state,
             route: route,
-            showErrorMessage: errorMessageRelay.asSignal()
+            showError: errorRelay.asSignal()
         )
     }
 }
@@ -117,15 +82,18 @@ private extension SearchViewModel {
                 return self.searchCoursesUseCase.execute(query: keyword)
                     .asObservable()
                     .do(onError: { [weak self] error in
-                        self?.errorMessageRelay.accept(
-                            self?.errorMessage(from: error) ?? "검색 중 오류가 발생했습니다."
-                        )
+                        self?.emitCourseError(from: error)
                     })
                     .catchAndReturn([])
             }
-            .do(onNext: { [weak self] _ in
-                self?.isLoadingRelay.accept(false)
-            })
+            .do(
+                onNext: { [weak self] _ in
+                    self?.isLoadingRelay.accept(false)
+                },
+                onError: { [weak self] _ in
+                    self?.isLoadingRelay.accept(false)
+                }
+            )
             .bind(to: searchedCoursesRelay)
             .disposed(by: disposeBag)
     }
@@ -139,7 +107,6 @@ private extension SearchViewModel {
                 guard let self else { return .empty() }
 
                 let toggledLikeState = !course.isLiked
-
                 self.updateLikeStateLocally(
                     courseID: course.id,
                     isLiked: toggledLikeState
@@ -155,9 +122,7 @@ private extension SearchViewModel {
                         courseID: course.id,
                         isLiked: course.isLiked
                     )
-                    self?.errorMessageRelay.accept(
-                        self?.errorMessage(from: error) ?? "찜 처리 중 오류가 발생했습니다."
-                    )
+                    self?.emitCourseError(from: error)
                 })
                 .catchAndReturn(())
             }
@@ -165,12 +130,45 @@ private extension SearchViewModel {
             .disposed(by: disposeBag)
     }
 
-    func errorMessage(from error: Error) -> String {
-        if let apiError = error as? ClassSACAPIError {
-            return apiError.userMessage
-        }
+    func makeStateDriver() -> Driver<SearchViewState> {
+        Observable
+            .combineLatest(
+                searchedCoursesRelay.asObservable(),
+                isLoadingRelay.asObservable(),
+                latestSearchKeywordRelay.asObservable()
+            )
+            .map { courses, isLoading, latestSearchKeyword in
+                let courseCellViewModels = courses.map(CourseListCellViewModelMapper.map)
 
-        return "오류가 발생했습니다."
+                let emptyMessage: String?
+                if isLoading {
+                    emptyMessage = nil
+                } else if latestSearchKeyword == nil {
+                    emptyMessage = "검색어를 입력해 클래스를 검색해보세요."
+                } else if courseCellViewModels.isEmpty {
+                    emptyMessage = "검색 결과가 없습니다."
+                } else {
+                    emptyMessage = nil
+                }
+
+                return SearchViewState(
+                    courses: courseCellViewModels,
+                    isLoading: isLoading,
+                    emptyMessage: emptyMessage
+                )
+            }
+            .asDriver(
+                onErrorJustReturn: SearchViewState(
+                    courses: [],
+                    isLoading: false,
+                    emptyMessage: "오류가 발생했습니다."
+                )
+            )
+    }
+
+    func emitCourseError(from error: Error) {
+        let courseError = (error as? CourseError) ?? .unknown
+        errorRelay.accept(courseError)
     }
 
     func course(with courseID: String) -> Course? {
@@ -183,83 +181,9 @@ private extension SearchViewModel {
     ) {
         let updatedCourses = searchedCoursesRelay.value.map { course in
             guard course.id == courseID else { return course }
-
-            return Course(
-                id: course.id,
-                category: course.category,
-                title: course.title,
-                description: course.description,
-                price: course.price,
-                salePrice: course.salePrice,
-                thumbnailURL: course.thumbnailURL,
-                imageURLs: course.imageURLs,
-                createdAt: course.createdAt,
-                isLiked: isLiked,
-                creatorNick: course.creatorNick
-            )
+            return course.updatingLikeState(isLiked)
         }
 
         searchedCoursesRelay.accept(updatedCourses)
-    }
-
-    func makeCourseListCellViewModel(course: Course) -> CourseListCellViewModel {
-        switch course.coursePrice {
-        case .free:
-            return CourseListCellViewModel(
-                courseID: course.id,
-                thumbnailImageURLString: course.thumbnailURL,
-                categoryTitle: course.category.title,
-                title: course.title,
-                descriptionText: course.description,
-                creatorNick: course.creatorNick,
-                isLiked: course.isLiked,
-                originalPriceText: nil,
-                salePriceText: nil,
-                discountPercentText: nil,
-                shouldShowOriginalPrice: false,
-                shouldShowSalePrice: false,
-                shouldShowDiscountPercent: false,
-                isFree: true
-            )
-
-        case .normal(let price):
-            return CourseListCellViewModel(
-                courseID: course.id,
-                thumbnailImageURLString: course.thumbnailURL,
-                categoryTitle: course.category.title,
-                title: course.title,
-                descriptionText: course.description,
-                creatorNick: course.creatorNick,
-                isLiked: course.isLiked,
-                originalPriceText: nil,
-                salePriceText: CoursePriceFormatter.formattedPrice(price),
-                discountPercentText: nil,
-                shouldShowOriginalPrice: false,
-                shouldShowSalePrice: true,
-                shouldShowDiscountPercent: false,
-                isFree: false
-            )
-
-        case .discounted(let originalPrice, let salePrice):
-            return CourseListCellViewModel(
-                courseID: course.id,
-                thumbnailImageURLString: course.thumbnailURL,
-                categoryTitle: course.category.title,
-                title: course.title,
-                descriptionText: course.description,
-                creatorNick: course.creatorNick,
-                isLiked: course.isLiked,
-                originalPriceText: CoursePriceFormatter.formattedPrice(originalPrice),
-                salePriceText: CoursePriceFormatter.formattedPrice(salePrice),
-                discountPercentText: CoursePriceFormatter.formattedDiscountPercent(
-                    originalPrice: originalPrice,
-                    salePrice: salePrice
-                ),
-                shouldShowOriginalPrice: true,
-                shouldShowSalePrice: true,
-                shouldShowDiscountPercent: true,
-                isFree: false
-            )
-        }
     }
 }
