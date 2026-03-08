@@ -18,8 +18,7 @@ final class CourseListViewController: UIViewController {
 
     private let disposeBag = DisposeBag()
 
-    private let latestSortTapRelay = PublishRelay<Void>()
-    private let originalPriceDescendingSortTapRelay = PublishRelay<Void>()
+    private let sortSelectionRelay = PublishRelay<CourseSortType>()
     private let likeButtonTapRelay = PublishRelay<String>()
 
     private var currentCategoryCellViewModels: [CourseCategoryCellViewModel] = []
@@ -68,13 +67,23 @@ final class CourseListViewController: UIViewController {
             .map(\.courseID)
             .asObservable()
 
+        let latestSortSelected = sortSelectionRelay
+            .filter { $0 == .latest }
+            .map { _ in () }
+            .asObservable()
+
+        let originalPriceDescendingSortSelected = sortSelectionRelay
+            .filter { $0 == .originalPriceDescending }
+            .map { _ in () }
+            .asObservable()
+
         let input = CourseListViewModel.Input(
-            viewDidLoad: Observable.just(()),
+            viewDidLoad: rx.viewDidLoad.asObservable(),
             didTapNotificationButton: rootView.notificationButton.rx.tap.asObservable(),
             didTapProfileButton: rootView.profileButton.rx.tap.asObservable(),
             didTapCategoryItem: categoryItemSelected,
-            didTapLatestSortButton: latestSortTapRelay.asObservable(),
-            didTapOriginalPriceDescendingSortButton: originalPriceDescendingSortTapRelay.asObservable(),
+            didTapLatestSortButton: latestSortSelected,
+            didTapOriginalPriceDescendingSortButton: originalPriceDescendingSortSelected,
             didTapCourseCell: courseItemSelected,
             didTapLikeButton: likeButtonTapRelay.asObservable()
         )
@@ -174,9 +183,9 @@ private extension CourseListViewController {
     }
 
     func bindError(_ output: CourseListViewModel.Output) {
-        output.showErrorMessage
-            .emit(with: self) { owner, message in
-                owner.showAlert(message: message)
+        output.showError
+            .emit(with: self) { owner, error in
+                owner.showAlert(message: error.userMessage)
             }
             .disposed(by: disposeBag)
     }
@@ -205,11 +214,11 @@ private extension CourseListViewController {
         )
 
         let latestAction = UIAlertAction(title: "최신순", style: .default) { [weak self] _ in
-            self?.latestSortTapRelay.accept(())
+            self?.sortSelectionRelay.accept(.latest)
         }
 
         let originalPriceDescendingAction = UIAlertAction(title: "금액 높은 순", style: .default) { [weak self] _ in
-            self?.originalPriceDescendingSortTapRelay.accept(())
+            self?.sortSelectionRelay.accept(.originalPriceDescending)
         }
 
         let cancelAction = UIAlertAction(title: "취소", style: .cancel)

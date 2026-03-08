@@ -7,7 +7,6 @@
 
 import Foundation
 import RxSwift
-import RxRelay
 import RxCocoa
 
 final class CourseListViewModel {
@@ -26,7 +25,7 @@ final class CourseListViewModel {
     struct Output {
         let state: Driver<CourseListViewState>
         let route: Signal<CourseListRoute>
-        let showErrorMessage: Signal<String>
+        let showError: Signal<CourseError>
     }
 
     private let fetchCoursesUseCase: FetchCoursesUseCase
@@ -37,7 +36,7 @@ final class CourseListViewModel {
     private let allCoursesRelay = BehaviorRelay<[Course]>(value: [])
     private let selectedCategoryItemsRelay = BehaviorRelay<Set<CourseCategoryItem>>(value: [.all])
     private let selectedSortTypeRelay = BehaviorRelay<CourseSortType>(value: .latest)
-    private let errorMessageRelay = PublishRelay<String>()
+    private let errorRelay = PublishRelay<CourseError>()
 
     private let categoryItems: [CourseCategoryItem] = [
         .all,
@@ -64,55 +63,10 @@ final class CourseListViewModel {
         bindSortSelection(input: input)
         bindLikeAction(input: input)
 
-        let coursesObservable = makeFilteredAndSortedCoursesObservable()
-
-        let state = Observable
-            .combineLatest(
-                makeCategoryCellViewModelsObservable(),
-                coursesObservable,
-                selectedSortTypeRelay.asObservable()
-            )
-            .map { [weak self] categories, courses, sortType -> CourseListViewState in
-                guard let self else {
-                    return CourseListViewState(
-                        categories: [],
-                        courses: [],
-                        courseCountText: "0개",
-                        selectedSortType: .latest
-                    )
-                }
-
-                let courseCellViewModels = courses.map {
-                    self.makeCourseListCellViewModel(course: $0)
-                }
-
-                return CourseListViewState(
-                    categories: categories,
-                    courses: courseCellViewModels,
-                    courseCountText: "\(courseCellViewModels.count)개",
-                    selectedSortType: sortType
-                )
-            }
-            .asDriver(onErrorDriveWith: .empty())
-
-        let route = Signal.merge(
-            input.didTapNotificationButton
-                .map { CourseListRoute.notifications }
-                .asSignal(onErrorSignalWith: .empty()),
-
-            input.didTapProfileButton
-                .map { CourseListRoute.profile }
-                .asSignal(onErrorSignalWith: .empty()),
-
-            input.didTapCourseCell
-                .map { CourseListRoute.courseDetail(courseID: $0) }
-                .asSignal(onErrorSignalWith: .empty())
-        )
-
         return Output(
-            state: state,
-            route: route,
-            showErrorMessage: errorMessageRelay.asSignal()
+            state: makeStateDriver(),
+            route: makeRouteSignal(input: input),
+            showError: errorRelay.asSignal()
         )
     }
 }
@@ -127,9 +81,7 @@ private extension CourseListViewModel {
                 return self.fetchCoursesUseCase.execute()
                     .asObservable()
                     .do(onError: { [weak self] error in
-                        self?.errorMessageRelay.accept(
-                            self?.errorMessage(from: error) ?? "오류가 발생했습니다."
-                        )
+                        self?.emitCourseError(from: error)
                     })
                     .catchAndReturn([])
             }
@@ -170,7 +122,6 @@ private extension CourseListViewModel {
                 guard let self else { return .empty() }
 
                 let toggledLikeState = !course.isLiked
-
                 self.updateLikeStateLocally(
                     courseID: course.id,
                     isLiked: toggledLikeState
@@ -186,14 +137,57 @@ private extension CourseListViewModel {
                         courseID: course.id,
                         isLiked: course.isLiked
                     )
-                    self?.errorMessageRelay.accept(
-                        self?.errorMessage(from: error) ?? "오류가 발생했습니다."
-                    )
+                    self?.emitCourseError(from: error)
                 })
                 .catchAndReturn(())
             }
             .subscribe()
             .disposed(by: disposeBag)
+    }
+
+    func makeStateDriver() -> Driver<CourseListViewState> {
+        let coursesObservable = makeFilteredAndSortedCoursesObservable()
+
+        return Observable
+            .combineLatest(
+                makeCategoryCellViewModelsObservable(),
+                coursesObservable,
+                selectedSortTypeRelay.asObservable()
+            )
+            .map { categories, courses, sortType in
+                let courseCellViewModels = courses.map(CourseListCellViewModelMapper.map)
+
+                return CourseListViewState(
+                    categories: categories,
+                    courses: courseCellViewModels,
+                    courseCountText: "\(courseCellViewModels.count)개",
+                    selectedSortType: sortType
+                )
+            }
+            .asDriver(
+                onErrorJustReturn: CourseListViewState(
+                    categories: [],
+                    courses: [],
+                    courseCountText: "0개",
+                    selectedSortType: .latest
+                )
+            )
+    }
+
+    func makeRouteSignal(input: Input) -> Signal<CourseListRoute> {
+        Signal.merge(
+            input.didTapNotificationButton
+                .map { CourseListRoute.notifications }
+                .asSignal(onErrorSignalWith: .empty()),
+
+            input.didTapProfileButton
+                .map { CourseListRoute.profile }
+                .asSignal(onErrorSignalWith: .empty()),
+
+            input.didTapCourseCell
+                .map { CourseListRoute.courseDetail(courseID: $0) }
+                .asSignal(onErrorSignalWith: .empty())
+        )
     }
 
     func makeFilteredAndSortedCoursesObservable() -> Observable<[Course]> {
@@ -236,12 +230,9 @@ private extension CourseListViewModel {
             }
     }
 
-    func errorMessage(from error: Error) -> String {
-        if let apiError = error as? ClassSACAPIError {
-            return apiError.userMessage
-        }
-
-        return "오류가 발생했습니다."
+    func emitCourseError(from error: Error) {
+        let courseError = (error as? CourseError) ?? .unknown
+        errorRelay.accept(courseError)
     }
 
     func updatedSelectedCategoryItems(
@@ -298,11 +289,11 @@ private extension CourseListViewModel {
 
         case .originalPriceDescending:
             return courses.sorted { leftCourse, rightCourse in
-                let leftOriginalPrice = originalPrice(for: leftCourse)
-                let rightOriginalPrice = originalPrice(for: rightCourse)
+                let leftOriginalPrice = leftCourse.originalPriceForSort
+                let rightOriginalPrice = rightCourse.originalPriceForSort
 
-                let leftIsFree = isFreeCourse(leftCourse)
-                let rightIsFree = isFreeCourse(rightCourse)
+                let leftIsFree = leftCourse.isFreeForSort
+                let rightIsFree = rightCourse.isFreeForSort
 
                 if leftIsFree != rightIsFree {
                     return rightIsFree
@@ -327,102 +318,9 @@ private extension CourseListViewModel {
     ) {
         let updatedCourses = allCoursesRelay.value.map { course in
             guard course.id == courseID else { return course }
-
-            return Course(
-                id: course.id,
-                category: course.category,
-                title: course.title,
-                description: course.description,
-                price: course.price,
-                salePrice: course.salePrice,
-                thumbnailURL: course.thumbnailURL,
-                imageURLs: course.imageURLs,
-                createdAt: course.createdAt,
-                isLiked: isLiked,
-                creatorNick: course.creatorNick
-            )
+            return course.updatingLikeState(isLiked)
         }
 
         allCoursesRelay.accept(updatedCourses)
-    }
-
-    func makeCourseListCellViewModel(course: Course) -> CourseListCellViewModel {
-        switch course.coursePrice {
-        case .free:
-            return CourseListCellViewModel(
-                courseID: course.id,
-                thumbnailImageURLString: course.thumbnailURL,
-                categoryTitle: course.category.title,
-                title: course.title,
-                descriptionText: course.description,
-                creatorNick: course.creatorNick,
-                isLiked: course.isLiked,
-                originalPriceText: nil,
-                salePriceText: nil,
-                discountPercentText: nil,
-                shouldShowOriginalPrice: false,
-                shouldShowSalePrice: false,
-                shouldShowDiscountPercent: false,
-                isFree: true
-            )
-
-        case .normal(let price):
-            return CourseListCellViewModel(
-                courseID: course.id,
-                thumbnailImageURLString: course.thumbnailURL,
-                categoryTitle: course.category.title,
-                title: course.title,
-                descriptionText: course.description,
-                creatorNick: course.creatorNick,
-                isLiked: course.isLiked,
-                originalPriceText: nil,
-                salePriceText: CoursePriceFormatter.formattedPrice(price),
-                discountPercentText: nil,
-                shouldShowOriginalPrice: false,
-                shouldShowSalePrice: true,
-                shouldShowDiscountPercent: false,
-                isFree: false
-            )
-
-        case .discounted(let originalPrice, let salePrice):
-            return CourseListCellViewModel(
-                courseID: course.id,
-                thumbnailImageURLString: course.thumbnailURL,
-                categoryTitle: course.category.title,
-                title: course.title,
-                descriptionText: course.description,
-                creatorNick: course.creatorNick,
-                isLiked: course.isLiked,
-                originalPriceText: CoursePriceFormatter.formattedPrice(originalPrice),
-                salePriceText: CoursePriceFormatter.formattedPrice(salePrice),
-                discountPercentText: CoursePriceFormatter.formattedDiscountPercent(
-                    originalPrice: originalPrice,
-                    salePrice: salePrice
-                ),
-                shouldShowOriginalPrice: true,
-                shouldShowSalePrice: true,
-                shouldShowDiscountPercent: true,
-                isFree: false
-            )
-        }
-    }
-
-    func isFreeCourse(_ course: Course) -> Bool {
-        if case .free = course.coursePrice {
-            return true
-        }
-
-        return false
-    }
-
-    func originalPrice(for course: Course) -> Int {
-        switch course.coursePrice {
-        case .free:
-            return 0
-        case .normal(let price):
-            return price
-        case .discounted(let originalPrice, _):
-            return originalPrice
-        }
     }
 }

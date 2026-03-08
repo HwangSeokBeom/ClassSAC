@@ -76,9 +76,21 @@ private extension DefaultAuthRepository {
             default:
                 return .unknown
             }
-
-        case .underlying:
-            return .network
+            
+        case .underlying(let underlyingError):
+            if let urlError = underlyingError as? URLError {
+                switch urlError.code {
+                case .notConnectedToInternet,
+                     .timedOut,
+                     .cannotFindHost,
+                     .cannotConnectToHost,
+                     .dnsLookupFailed:
+                    return .network
+                default:
+                    return .unknown
+                }
+            }
+            return .unknown
 
         case .invalidURL, .decoding, .deallocated:
             return .unknown
