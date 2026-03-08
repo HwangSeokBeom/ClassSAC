@@ -10,5 +10,6 @@ import RxSwift
 
 protocol CourseRepository: AnyObject {
     func fetchCourses() -> Single<[Course]>
+    func searchCourses(query: String) -> Single<[Course]>
     func toggleCourseLike(courseID: String, isLiked: Bool) -> Single<Void>
 }

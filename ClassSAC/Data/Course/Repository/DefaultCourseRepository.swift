@@ -24,6 +24,13 @@ final class DefaultCourseRepository: CourseRepository {
                 response.data.map { $0.toEntity() }
             }
     }
+    
+    func searchCourses(query: String) -> Single<[Course]> {
+        remoteDataSource.searchCourses(query: query)
+            .map { responseDTO in
+                responseDTO.data.map { $0.toEntity() }
+            }
+    }
 
     func toggleCourseLike(
         courseID: String,
