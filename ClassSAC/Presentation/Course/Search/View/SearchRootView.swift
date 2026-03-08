@@ -20,6 +20,10 @@ final class SearchRootView: BaseRootView {
         textField.returnKeyType = .search
         textField.clearButtonMode = .whileEditing
         textField.leftViewMode = .always
+        textField.borderStyle = .none
+        textField.autocorrectionType = .no
+        textField.autocapitalizationType = .none
+        textField.spellCheckingType = .no
 
         let imageView = UIImageView(image: AppIcon.search.image)
         imageView.tintColor = AppColor.textSecondary
@@ -27,6 +31,7 @@ final class SearchRootView: BaseRootView {
         imageView.frame = CGRect(x: 0, y: 0, width: 18, height: 18)
 
         let leftContainerView = UIView(frame: CGRect(x: 0, y: 0, width: 38, height: 18))
+        leftContainerView.isUserInteractionEnabled = false
         leftContainerView.addSubview(imageView)
 
         imageView.snp.makeConstraints { make in
@@ -62,12 +67,14 @@ final class SearchRootView: BaseRootView {
         label.textAlignment = .center
         label.numberOfLines = 0
         label.isHidden = true
+        label.isUserInteractionEnabled = false
         return label
     }()
 
     let loadingIndicatorView: UIActivityIndicatorView = {
         let indicatorView = UIActivityIndicatorView(style: .medium)
         indicatorView.hidesWhenStopped = true
+        indicatorView.isUserInteractionEnabled = false
         return indicatorView
     }()
 
@@ -82,7 +89,7 @@ final class SearchRootView: BaseRootView {
 
     override func configureLayout() {
         searchTextField.snp.makeConstraints { make in
-            make.top.equalTo(safeAreaLayoutGuide).offset(10)
+            make.top.equalTo(safeAreaLayoutGuide).offset(20)
             make.horizontalEdges.equalToSuperview().inset(22)
             make.height.equalTo(44)
         }

@@ -40,6 +40,16 @@ final class SearchViewController: UIViewController {
     override func loadView() {
         view = rootView
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: false)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: false)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -150,7 +160,8 @@ extension SearchViewController: UICollectionViewDelegateFlowLayout {
         let columnCount = searchColumnCount()
         let totalSpacing = interItemSpacing * CGFloat(columnCount - 1)
         let itemWidth = floor((sectionWidth - totalSpacing) / CGFloat(columnCount))
-        let itemHeight = itemWidth * 0.62 + searchCellExtraHeight()
+
+        let itemHeight = itemWidth + searchCellExtraHeight()
 
         return CGSize(width: itemWidth, height: itemHeight)
     }
@@ -165,10 +176,10 @@ extension SearchViewController: UICollectionViewDelegateFlowLayout {
 
     private func searchCellExtraHeight() -> CGFloat {
         if traitCollection.userInterfaceIdiom == .pad {
-            return 92
+            return 132
         }
 
-        return 118
+        return 120
     }
 
     func collectionView(
