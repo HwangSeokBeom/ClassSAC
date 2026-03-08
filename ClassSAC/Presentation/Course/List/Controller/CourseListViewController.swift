@@ -78,7 +78,7 @@ final class CourseListViewController: UIViewController {
             .asObservable()
 
         let input = CourseListViewModel.Input(
-            viewDidLoad: rx.viewDidLoad.asObservable(),
+            viewDidLoad: Observable.just(()),
             didTapNotificationButton: rootView.notificationButton.rx.tap.asObservable(),
             didTapProfileButton: rootView.profileButton.rx.tap.asObservable(),
             didTapCategoryItem: categoryItemSelected,
