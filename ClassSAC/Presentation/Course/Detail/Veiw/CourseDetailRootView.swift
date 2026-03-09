@@ -174,7 +174,7 @@ final class CourseDetailRootView: BaseRootView {
         var configuration = UIButton.Configuration.plain()
         
         configuration.title = "커뮤니티 더보기"
-        configuration.image = UIImage(systemName: "chevron.right")
+        configuration.image = AppIcon.chervronRight.image
         configuration.imagePlacement = .trailing
         configuration.imagePadding = 6
 

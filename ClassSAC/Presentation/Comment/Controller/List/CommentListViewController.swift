@@ -60,8 +60,8 @@ private extension CommentListViewController {
     func bind() {
         let input = CommentListViewModel.Input(
             viewDidLoad: Observable.just(()),
-            didTapLatestSortButton: rootView.latestSortButton.rx.tap.asObservable(),
-            didTapOldestSortButton: rootView.oldestSortButton.rx.tap.asObservable(),
+            didTapLatestSortButton: rootView.sortButton.rx.tap.asObservable(),
+            didTapOldestSortButton: .empty(),
             didTapWriteButton: rootView.writeCommentButton.rx.tap.asObservable(),
             didTapEditButton: editCommentIDRelay.asObservable(),
             didTapDeleteButton: deleteCommentIDRelay.asObservable(),
@@ -171,16 +171,12 @@ private extension CommentListViewController {
     }
 
     func render(state: CommentListViewState) {
-        rootView.titleLabel.text = state.courseTitle
-        rootView.commentCountLabel.text = state.commentCountText
+        rootView.updateNavigationTitle(state.courseTitle)
+        rootView.updateCommentCount(state.commentCellViewModels.count)
+        rootView.updateSortButtonTitle(state.selectedSortTitle)
 
         rootView.emptyStateLabel.isHidden = state.isEmptyViewHidden
         rootView.commentTableView.isHidden = !state.isEmptyViewHidden
-
-        rootView.latestSortButton.isSelected = state.selectedSortTitle == CommentSortOption.latest.title
-        rootView.oldestSortButton.isSelected = state.selectedSortTitle == CommentSortOption.oldest.title
-
-        rootView.updateSortButtonAppearance()
 
         if state.isLoading {
             rootView.loadingIndicatorView.startAnimating()

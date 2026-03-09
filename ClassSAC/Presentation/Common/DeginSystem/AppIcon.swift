@@ -29,6 +29,9 @@ enum AppIcon: String {
     case trash = "trash"
     case logout = "iphone.and.arrow.right.outward"
     case chevronDown = "chevron.down"
+    case chervronLeft = "chevron.left"
+    case chervronRight = "chevron.right"
+    case squareAndPencil = "square.and.pencil"
 
     var image: UIImage? {
         UIImage(systemName: rawValue)
