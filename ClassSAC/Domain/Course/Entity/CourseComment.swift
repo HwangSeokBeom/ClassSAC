@@ -7,15 +7,18 @@
 
 import Foundation
 
-struct CourseComment {
-    let id: String
+struct Comment {
+    let commentID: String
+    let courseID: String
     let content: String
     let createdAt: Date?
-    let writer: CourseCommentWriter
+    let updatedAt: Date?
+    let writer: CommentWriter
+    let isMine: Bool
 }
 
-struct CourseCommentWriter {
+struct CommentWriter {
     let userID: String
-    let nick: String
+    let nickname: String
     let profileImageURL: String?
 }
