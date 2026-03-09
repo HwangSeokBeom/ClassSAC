@@ -15,6 +15,6 @@ enum ImageURLBuilder {
         let trimmedBaseURLString = Secrets.BaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let trimmedPathString = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 
-        return URL(string: "\(trimmedBaseURLString)/v1/\(trimmedPathString)")
+        return URL(string: "\(trimmedBaseURLString)/\(trimmedPathString)")
     }
 }

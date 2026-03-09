@@ -25,7 +25,7 @@ final class CourseDetailViewModel {
 
     private enum Message {
         static let undecided = "미정"
-        static let noParticipants = "0명 참여 중"
+        static let noComments = "댓글 0개"
         static let justNow = "방금 전"
     }
 
@@ -51,27 +51,27 @@ final class CourseDetailViewModel {
 
     private let courseID: String
     private let fetchCourseDetailUseCase: FetchCourseDetailUseCase
-    private let fetchCourseCommentsUseCase: FetchCourseCommentsUseCase
+    private let fetchCommentsUseCase: FetchCommentsUseCase
     private let toggleCourseLikeUseCase: ToggleCourseLikeUseCase
     private let courseLikeStatusNotifier: CourseLikeStatusBroadcasting
 
     private let disposeBag = DisposeBag()
 
     private let courseDetailRelay = BehaviorRelay<CourseDetail?>(value: nil)
-    private let commentsRelay = BehaviorRelay<[CourseComment]>(value: [])
+    private let commentsRelay = BehaviorRelay<[Comment]>(value: [])
     private let isLoadingRelay = BehaviorRelay<Bool>(value: false)
     private let errorRelay = PublishRelay<CourseError>()
 
     init(
         courseID: String,
         fetchCourseDetailUseCase: FetchCourseDetailUseCase,
-        fetchCourseCommentsUseCase: FetchCourseCommentsUseCase,
+        fetchCommentsUseCase: FetchCommentsUseCase,
         toggleCourseLikeUseCase: ToggleCourseLikeUseCase,
         courseLikeStatusNotifier: CourseLikeStatusBroadcasting
     ) {
         self.courseID = courseID
         self.fetchCourseDetailUseCase = fetchCourseDetailUseCase
-        self.fetchCourseCommentsUseCase = fetchCourseCommentsUseCase
+        self.fetchCommentsUseCase = fetchCommentsUseCase
         self.toggleCourseLikeUseCase = toggleCourseLikeUseCase
         self.courseLikeStatusNotifier = courseLikeStatusNotifier
     }
@@ -119,10 +119,10 @@ private extension CourseDetailViewModel {
 
     func bindFetchComments(input: Input) {
         input.viewDidLoad
-            .flatMapLatest { [weak self] _ -> Observable<[CourseComment]> in
+            .flatMapLatest { [weak self] _ -> Observable<[Comment]> in
                 guard let self else { return .empty() }
 
-                return self.fetchCourseCommentsUseCase.execute(courseID: self.courseID)
+                return self.fetchCommentsUseCase.execute(courseID: self.courseID)
                     .asObservable()
                     .do(onError: { [weak self] error in
                         self?.emitCourseError(from: error)
@@ -206,7 +206,7 @@ private extension CourseDetailViewModel {
                     shouldShowSalePrice: priceState.shouldShowSalePrice,
                     shouldShowDiscountPercent: priceState.shouldShowDiscountPercent,
                     isFree: priceState.isFree,
-                    commentCountText: "\(comments.count)명 참여 중",
+                    commentCountText: "댓글 \(comments.count)개",
                     commentPreviewCellViewModels: previewComments,
                     isMoreCommentsButtonEnabled: !comments.isEmpty,
                     isLoading: isLoading
@@ -225,7 +225,7 @@ private extension CourseDetailViewModel {
             .asSignal(onErrorSignalWith: .empty())
     }
 
-    func previewComments(from comments: [CourseComment]) -> [CourseCommentPreviewCellViewModel] {
+    func previewComments(from comments: [Comment]) -> [CourseCommentPreviewCellViewModel] {
         comments
             .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
             .prefix(2)
@@ -233,11 +233,11 @@ private extension CourseDetailViewModel {
     }
 
     func makeCommentPreviewCellViewModel(
-        comment: CourseComment
+        comment: Comment
     ) -> CourseCommentPreviewCellViewModel {
         CourseCommentPreviewCellViewModel(
             commentID: comment.id,
-            writerNick: comment.writer.nick,
+            writerNick: comment.writer.nickname,
             profileImagePath: comment.writer.profileImageURL,
             contentText: comment.content,
             createdAtText: comment.createdAt?.courseCommentDisplayText ?? Message.justNow
@@ -366,7 +366,7 @@ private extension CourseDetailViewModel {
             shouldShowSalePrice: false,
             shouldShowDiscountPercent: false,
             isFree: false,
-            commentCountText: Message.noParticipants,
+            commentCountText: Message.noComments,
             commentPreviewCellViewModels: [],
             isMoreCommentsButtonEnabled: false,
             isLoading: false

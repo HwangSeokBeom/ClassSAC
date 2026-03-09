@@ -12,7 +12,6 @@ struct Comment {
     let courseID: String
     let content: String
     let createdAt: Date?
-    let updatedAt: Date?
     let writer: CommentWriter
     let isWrittenByCurrentUser: Bool
 }

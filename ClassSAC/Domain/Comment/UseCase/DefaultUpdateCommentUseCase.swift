@@ -16,7 +16,7 @@ final class DefaultUpdateCommentUseCase: UpdateCommentUseCase {
         self.commentRepository = commentRepository
     }
 
-    func execute(commentID: String, content: String) -> Single<Comment> {
-        commentRepository.updateComment(commentID: commentID, content: content)
+    func execute(courseID: String, commentID: String, content: String) -> Single<Comment> {
+        commentRepository.updateComment(courseID: courseID, commentID: commentID, content: content)
     }
 }

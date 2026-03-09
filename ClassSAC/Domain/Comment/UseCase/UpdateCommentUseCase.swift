@@ -9,5 +9,5 @@ import Foundation
 import RxSwift
 
 protocol UpdateCommentUseCase {
-    func execute(commentID: String, content: String) -> Single<Comment>
+    func execute(courseID: String, commentID: String, content: String) -> Single<Comment>
 }

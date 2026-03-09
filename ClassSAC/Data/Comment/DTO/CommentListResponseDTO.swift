@@ -1,5 +1,5 @@
 //
-//  CourseCommentListResponseDTO.swift
+//  CommentListResponseDTO.swift
 //  ClassSAC
 //
 //  Created by Hwangseokbeom on 3/9/26.
@@ -13,21 +13,15 @@ struct CommentListResponseDTO: Decodable {
 
 struct CommentDTO: Decodable {
     let commentID: String
-    let courseID: String
     let content: String
     let createdAt: String
-    let updatedAt: String
     let creator: CommentCreatorDTO
-    let isMine: Bool
 
     enum CodingKeys: String, CodingKey {
         case commentID = "comment_id"
-        case courseID = "course_id"
         case content
         case createdAt = "created_at"
-        case updatedAt = "updated_at"
         case creator
-        case isMine = "is_mine"
     }
 }
 

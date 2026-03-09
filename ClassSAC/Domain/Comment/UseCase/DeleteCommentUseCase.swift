@@ -9,5 +9,5 @@ import Foundation
 import RxSwift
 
 protocol DeleteCommentUseCase {
-    func execute(commentID: String) -> Single<Void>
+    func execute(courseID: String, commentID: String) -> Single<Void>
 }

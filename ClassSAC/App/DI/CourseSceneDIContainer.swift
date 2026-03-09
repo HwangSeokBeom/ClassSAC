@@ -24,7 +24,7 @@ final class CourseSceneDIContainer {
         httpClient: httpClient
     )
 
-    private lazy var courseCommentRemoteDataSource = CourseCommentRemoteDataSource(
+    private lazy var commentRemoteDataSource = CommentRemoteDataSource(
         httpClient: httpClient
     )
 
@@ -32,8 +32,9 @@ final class CourseSceneDIContainer {
         remoteDataSource: courseRemoteDataSource
     )
 
-    private lazy var courseCommentRepository: CourseCommentRepository = DefaultCourseCommentRepository(
-        remoteDataSource: courseCommentRemoteDataSource
+    private lazy var commentRepository: CommentRepository = DefaultCommentRepository(
+        remoteDataSource: commentRemoteDataSource,
+        currentUserIDProvider: { nil }
     )
 
     private lazy var thumbnailProvider: CourseThumbnailProviding = KingfisherCourseThumbnailProvider(
@@ -61,8 +62,8 @@ final class CourseSceneDIContainer {
         DefaultFetchCourseDetailUseCase(courseRepository: courseRepository)
     }
 
-    private func makeFetchCourseCommentsUseCase() -> FetchCourseCommentsUseCase {
-        DefaultFetchCourseCommentsUseCase(courseCommentRepository: courseCommentRepository)
+    private func makeFetchCommentsUseCase() -> FetchCommentsUseCase {
+        DefaultFetchCommentsUseCase(commentRepository: commentRepository)
     }
 
     func makeCourseListViewController(
@@ -113,7 +114,7 @@ final class CourseSceneDIContainer {
         let courseDetailViewModel = CourseDetailViewModel(
             courseID: courseID,
             fetchCourseDetailUseCase: makeFetchCourseDetailUseCase(),
-            fetchCourseCommentsUseCase: makeFetchCourseCommentsUseCase(),
+            fetchCommentsUseCase: makeFetchCommentsUseCase(),
             toggleCourseLikeUseCase: makeToggleCourseLikeUseCase(),
             courseLikeStatusNotifier: courseLikeStatusNotifier
         )
@@ -131,7 +132,7 @@ final class CourseSceneDIContainer {
     ) -> UIViewController {
         let courseCommentListViewController = UIViewController()
         courseCommentListViewController.view.backgroundColor = AppColor.bgPrimary
-        courseCommentListViewController.title = "댓글"
+        courseCommentListViewController.title = "클래스 댓글"
         return courseCommentListViewController
     }
 

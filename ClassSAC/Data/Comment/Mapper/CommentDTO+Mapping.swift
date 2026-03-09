@@ -9,19 +9,18 @@ import Foundation
 
 extension CommentDTO {
 
-    func toEntity() -> Comment {
+    func toEntity(courseID: String, currentUserID: String?) -> Comment {
         Comment(
             id: commentID,
             courseID: courseID,
             content: content,
             createdAt: DateFormatterManager.iso8601.date(from: createdAt),
-            updatedAt: DateFormatterManager.iso8601.date(from: updatedAt),
             writer: CommentWriter(
                 userID: creator.userID,
                 nickname: creator.nick,
                 profileImageURL: creator.profileImage
             ),
-            isWrittenByCurrentUser: isMine
+            isWrittenByCurrentUser: creator.userID == currentUserID
         )
     }
 }

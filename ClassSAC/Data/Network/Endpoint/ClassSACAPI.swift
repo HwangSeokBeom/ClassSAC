@@ -20,61 +20,62 @@ enum ClassSACAPI: ClassSACEndpoint {
     case searchCourses(query: SearchCoursesQuery)
     case likeCourse(courseId: String, likeStatus: Bool)
 
-    case createComment(courseId: String, content: String)
     case comments(courseId: String)
-    case updateComment(courseId: String, commentId: String, content: String)
+    case createComment(courseId: String, body: CreateCommentRequestDTO)
+    case updateComment(courseId: String, commentId: String, body: UpdateCommentRequestDTO)
     case deleteComment(courseId: String, commentId: String)
 
     var baseURL: URL {
         guard let url = URL(string: Secrets.BaseURL) else {
             fatalError("Invalid Secrets.BaseURL")
         }
-
         return url
     }
 
     var path: String {
         switch self {
+
         case .join:
-            return "v1/users/join"
+            return "users/join"
 
         case .login:
-            return "v1/users/login"
+            return "users/login"
 
         case .myProfile:
-            return "v1/users/me/profile"
+            return "users/me/profile"
 
         case .updateMyProfile:
-            return "v1/users/me/profile"
+            return "users/me/profile"
 
         case .courses:
-            return "v1/courses"
+            return "courses"
 
         case .courseDetail(let courseId):
-            return "v1/courses/\(courseId)"
+            return "courses/\(courseId)"
 
         case .searchCourses:
-            return "v1/courses/search"
+            return "courses/search"
 
         case .likeCourse(let courseId, _):
-            return "v1/courses/\(courseId)/like"
-
-        case .createComment(let courseId, _):
-            return "v1/courses/\(courseId)/comments"
+            return "courses/\(courseId)/like"
 
         case .comments(let courseId):
-            return "v1/courses/\(courseId)/comments"
+            return "courses/\(courseId)/comments"
+
+        case .createComment(let courseId, _):
+            return "courses/\(courseId)/comments"
 
         case .updateComment(let courseId, let commentId, _):
-            return "v1/courses/\(courseId)/comments/\(commentId)"
+            return "courses/\(courseId)/comments/\(commentId)"
 
         case .deleteComment(let courseId, let commentId):
-            return "v1/courses/\(courseId)/comments/\(commentId)"
+            return "courses/\(courseId)/comments/\(commentId)"
         }
     }
 
     var method: HTTPMethod {
         switch self {
+
         case .join, .login:
             return .post
 
@@ -84,7 +85,7 @@ enum ClassSACAPI: ClassSACEndpoint {
         case .updateMyProfile:
             return .put
 
-        case .courses, .courseDetail, .searchCourses:
+        case .courses, .courseDetail, .searchCourses, .comments:
             return .get
 
         case .likeCourse:
@@ -92,9 +93,6 @@ enum ClassSACAPI: ClassSACEndpoint {
 
         case .createComment:
             return .post
-
-        case .comments:
-            return .get
 
         case .updateComment:
             return .put
@@ -108,7 +106,6 @@ enum ClassSACAPI: ClassSACEndpoint {
         switch self {
         case .join, .login:
             return false
-
         default:
             return true
         }
@@ -118,7 +115,6 @@ enum ClassSACAPI: ClassSACEndpoint {
         switch self {
         case .updateMyProfile:
             return true
-
         default:
             return false
         }
@@ -138,6 +134,7 @@ enum ClassSACAPI: ClassSACEndpoint {
 
     var query: ClassSACQuery? {
         switch self {
+
         case .courses(let query):
             return query
 
@@ -151,6 +148,7 @@ enum ClassSACAPI: ClassSACEndpoint {
 
     var parameters: Parameters? {
         switch self {
+
         case .join(let email, let password, let nick):
             return [
                 "email": email,
@@ -164,14 +162,14 @@ enum ClassSACAPI: ClassSACEndpoint {
                 "password": password
             ]
 
-        case .createComment(_, let content):
+        case .createComment(_, let body):
             return [
-                "content": content
+                "content": body.content
             ]
 
-        case .updateComment(_, _, let content):
+        case .updateComment(_, _, let body):
             return [
-                "content": content
+                "content": body.content
             ]
 
         case .likeCourse(_, let likeStatus):
@@ -179,8 +177,7 @@ enum ClassSACAPI: ClassSACEndpoint {
                 "like_status": likeStatus
             ]
 
-        case .updateMyProfile(let nick, _):
-            _ = nick
+        case .updateMyProfile:
             return nil
 
         default:
@@ -190,6 +187,7 @@ enum ClassSACAPI: ClassSACEndpoint {
 
     var encoding: ParameterEncoding {
         switch self {
+
         case .courses, .courseDetail, .comments, .myProfile, .searchCourses:
             return URLEncoding.default
 
