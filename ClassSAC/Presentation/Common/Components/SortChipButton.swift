@@ -1,5 +1,5 @@
 //
-//  CourseSortButton.swift
+//  SortChipButton.swift
 //  ClassSAC
 //
 //  Created by Hwangseokbeom on 3/7/26.
@@ -8,7 +8,7 @@
 import UIKit
 import SnapKit
 
-final class CourseSortButton: UIButton {
+final class SortChipButton: UIButton {
 
     private let iconImageView = UIImageView()
     private let titleLabelView = UILabel()
@@ -50,6 +50,7 @@ final class CourseSortButton: UIButton {
         layer.cornerRadius = 16
         layer.borderWidth = 1
         layer.borderColor = AppColor.borderSubtle.cgColor
+        clipsToBounds = true
 
         iconImageView.image = AppIcon.sort.image
         iconImageView.tintColor = AppColor.textSecondary
@@ -57,9 +58,16 @@ final class CourseSortButton: UIButton {
 
         titleLabelView.font = AppFont.caption.font
         titleLabelView.textColor = AppColor.textSecondary
+
+        showsMenuAsPrimaryAction = true
     }
 
     func configure(title: String) {
         titleLabelView.text = title
+    }
+
+    func configureMenu(actions: [UIAction]) {
+        menu = UIMenu(children: actions)
+        showsMenuAsPrimaryAction = true
     }
 }

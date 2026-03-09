@@ -44,21 +44,15 @@ final class CommentListViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        configureTableView()
         bind()
     }
 }
 
 private extension CommentListViewController {
 
-    func configureTableView() {
-        rootView.commentTableView.register(
-            CommentTableViewCell.self,
-            forCellReuseIdentifier: CommentTableViewCell.identifier
-        )
-    }
-
     func bind() {
+        configureSortMenu()
+
         let input = CommentListViewModel.Input(
             viewDidLoad: Observable.just(()),
             didSelectSortOption: selectedSortOptionRelay.asObservable(),
@@ -79,6 +73,21 @@ private extension CommentListViewController {
         bindDeleteAlert(output: output)
         bindError(output: output)
         bindAction()
+    }
+
+    func configureSortMenu() {
+        let latestAction = UIAction(title: CommentSortOption.latest.title) { [weak self] _ in
+            self?.selectedSortOptionRelay.accept(.latest)
+        }
+
+        let oldestAction = UIAction(title: CommentSortOption.oldest.title) { [weak self] _ in
+            self?.selectedSortOptionRelay.accept(.oldest)
+        }
+
+        rootView.sortButton.configureMenu(actions: [
+            latestAction,
+            oldestAction
+        ])
     }
 
     func bindState(output: CommentListViewModel.Output) {
@@ -168,10 +177,6 @@ private extension CommentListViewController {
                 owner.navigationController?.popViewController(animated: true)
             }
             .disposed(by: disposeBag)
-
-        rootView.onSelectSortOption = { [weak self] sortOption in
-            self?.selectedSortOptionRelay.accept(sortOption)
-        }
     }
 
     func render(state: CommentListViewState) {

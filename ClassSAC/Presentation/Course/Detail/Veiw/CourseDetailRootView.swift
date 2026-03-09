@@ -401,5 +401,10 @@ final class CourseDetailRootView: BaseRootView {
         discountPercentLabel.isHidden = true
         firstCommentPreviewView.isHidden = true
         secondCommentPreviewView.isHidden = true
+
+        imageCollectionView.register(
+            CourseDetailImageCollectionViewCell.self,
+            forCellWithReuseIdentifier: CourseDetailImageCollectionViewCell.identifier
+        )
     }
 }

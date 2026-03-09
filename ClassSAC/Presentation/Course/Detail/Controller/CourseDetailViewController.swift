@@ -40,7 +40,6 @@ final class CourseDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        configureCollectionView()
         bind()
     }
 
@@ -51,13 +50,6 @@ final class CourseDetailViewController: UIViewController {
 }
 
 private extension CourseDetailViewController {
-
-    func configureCollectionView() {
-        rootView.imageCollectionView.register(
-            CourseDetailImageCollectionViewCell.self,
-            forCellWithReuseIdentifier: CourseDetailImageCollectionViewCell.identifier
-        )
-    }
 
     func bind() {
         let input = CourseDetailViewModel.Input(

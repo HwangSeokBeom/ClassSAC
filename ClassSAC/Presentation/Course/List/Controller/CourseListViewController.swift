@@ -55,6 +55,8 @@ final class CourseListViewController: UIViewController {
     }
 
     private func bind() {
+        configureSortMenu()
+
         let categoryItemSelected = rootView.categoryCollectionView.rx
             .modelSelected(CourseCategoryCellViewModel.self)
             .map(\.item)
@@ -93,12 +95,26 @@ final class CourseListViewController: UIViewController {
         bindCourseCollectionView(output)
         bindNavigation(output)
         bindError(output)
-        bindSortAction()
         bindCollectionViewDelegate()
     }
 }
 
 private extension CourseListViewController {
+
+    func configureSortMenu() {
+        let latestAction = UIAction(title: "최신순") { [weak self] _ in
+            self?.sortSelectionRelay.accept(.latest)
+        }
+
+        let originalPriceDescendingAction = UIAction(title: "금액 높은 순") { [weak self] _ in
+            self?.sortSelectionRelay.accept(.originalPriceDescending)
+        }
+
+        rootView.sortButton.configureMenu(actions: [
+            latestAction,
+            originalPriceDescendingAction
+        ])
+    }
 
     func bindState(_ output: CourseListViewModel.Output) {
         output.state
@@ -167,46 +183,12 @@ private extension CourseListViewController {
             .disposed(by: disposeBag)
     }
 
-    func bindSortAction() {
-        rootView.sortButton.rx.tap
-            .bind(with: self) { owner, _ in
-                owner.presentSortActionSheet()
-            }
-            .disposed(by: disposeBag)
-    }
-
     func bindCollectionViewDelegate() {
         rootView.categoryCollectionView.rx.setDelegate(self)
             .disposed(by: disposeBag)
 
         rootView.courseCollectionView.rx.setDelegate(self)
             .disposed(by: disposeBag)
-    }
-
-    func presentSortActionSheet() {
-        let alertController = UIAlertController(
-            title: "정렬",
-            message: nil,
-            preferredStyle: .actionSheet
-        )
-
-        let latestAction = UIAlertAction(title: "최신순", style: .default) { [weak self] _ in
-            self?.sortSelectionRelay.accept(.latest)
-        }
-
-        let originalPriceDescendingAction = UIAlertAction(title: "금액 높은 순", style: .default) { [weak self] _ in
-            self?.sortSelectionRelay.accept(.originalPriceDescending)
-        }
-
-        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
-
-        [
-            latestAction,
-            originalPriceDescendingAction,
-            cancelAction
-        ].forEach { alertController.addAction($0) }
-
-        present(alertController, animated: true)
     }
 }
 

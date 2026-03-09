@@ -62,7 +62,7 @@ final class CourseListRootView: BaseRootView {
         return label
     }()
 
-    let sortButton = CourseSortButton()
+    let sortButton = SortChipButton()
 
     let courseCollectionView: UICollectionView = {
         let flowLayout = UICollectionViewFlowLayout()
@@ -80,7 +80,6 @@ final class CourseListRootView: BaseRootView {
         return collectionView
     }()
 
-    private let headerContainerView = UIView()
     private let fixedTopContainerView = UIView()
     private let countSortContainerView = UIView()
 
