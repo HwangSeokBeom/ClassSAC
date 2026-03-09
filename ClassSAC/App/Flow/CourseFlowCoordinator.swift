@@ -10,6 +10,7 @@ import UIKit
 protocol CourseFlowCoordinating: AnyObject {
     func handle(route: CourseListRoute, from viewController: UIViewController)
     func handle(route: SearchRoute, from viewController: UIViewController)
+    func handle(route: CourseDetailRoute, from viewController: UIViewController)
     func requestLogout()
 }
 
@@ -120,6 +121,21 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
 
             viewController.navigationController?.pushViewController(
                 courseDetailViewController,
+                animated: true
+            )
+        }
+    }
+
+    func handle(route: CourseDetailRoute, from viewController: UIViewController) {
+        switch route {
+        case .commentList(let courseID):
+            let commentListViewController = courseSceneDIContainer.makeCourseCommentListViewController(
+                courseID: courseID,
+                courseFlowCoordinator: self
+            )
+
+            viewController.navigationController?.pushViewController(
+                commentListViewController,
                 animated: true
             )
         }

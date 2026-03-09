@@ -10,6 +10,7 @@ import Foundation
 struct CourseCommentPreviewCellViewModel {
     let commentID: String
     let writerNick: String
+    let profileImagePath: String?
     let contentText: String
     let createdAtText: String
 }

@@ -25,6 +25,7 @@ final class SearchViewModel {
 
     private let searchCoursesUseCase: SearchCoursesUseCase
     private let toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+    private let courseLikeStatusNotifier: CourseLikeStatusBroadcasting
 
     private let disposeBag = DisposeBag()
 
@@ -35,15 +36,18 @@ final class SearchViewModel {
 
     init(
         searchCoursesUseCase: SearchCoursesUseCase,
-        toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+        toggleCourseLikeUseCase: ToggleCourseLikeUseCase,
+        courseLikeStatusNotifier: CourseLikeStatusBroadcasting
     ) {
         self.searchCoursesUseCase = searchCoursesUseCase
         self.toggleCourseLikeUseCase = toggleCourseLikeUseCase
+        self.courseLikeStatusNotifier = courseLikeStatusNotifier
     }
 
     func transform(input: Input) -> Output {
         bindSearch(input: input)
         bindLikeAction(input: input)
+        bindExternalLikeState()
 
         let state = makeStateDriver()
 
@@ -107,6 +111,7 @@ private extension SearchViewModel {
                 guard let self else { return .empty() }
 
                 let toggledLikeState = !course.isLiked
+
                 self.updateLikeStateLocally(
                     courseID: course.id,
                     isLiked: toggledLikeState
@@ -130,6 +135,17 @@ private extension SearchViewModel {
             .disposed(by: disposeBag)
     }
 
+    func bindExternalLikeState() {
+        courseLikeStatusNotifier.observe()
+            .subscribe(with: self) { owner, payload in
+                owner.updateLikeStateLocally(
+                    courseID: payload.courseID,
+                    isLiked: payload.isLiked
+                )
+            }
+            .disposed(by: disposeBag)
+    }
+
     func makeStateDriver() -> Driver<SearchViewState> {
         Observable
             .combineLatest(
@@ -138,11 +154,10 @@ private extension SearchViewModel {
                 latestSearchKeywordRelay.asObservable()
             )
             .map { courses, isLoading, latestSearchKeyword in
-                
                 let courseCellViewModels = courses.map(CourseListCellViewModelMapper.map)
 
                 let emptyState: SearchEmptyState
-                
+
                 if isLoading {
                     emptyState = .none
                 } else if latestSearchKeyword == nil {

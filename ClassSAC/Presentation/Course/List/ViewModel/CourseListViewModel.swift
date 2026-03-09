@@ -30,6 +30,7 @@ final class CourseListViewModel {
 
     private let fetchCoursesUseCase: FetchCoursesUseCase
     private let toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+    private let courseLikeStatusNotifier: CourseLikeStatusBroadcasting
 
     private let disposeBag = DisposeBag()
 
@@ -51,10 +52,12 @@ final class CourseListViewModel {
 
     init(
         fetchCoursesUseCase: FetchCoursesUseCase,
-        toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+        toggleCourseLikeUseCase: ToggleCourseLikeUseCase,
+        courseLikeStatusNotifier: CourseLikeStatusBroadcasting
     ) {
         self.fetchCoursesUseCase = fetchCoursesUseCase
         self.toggleCourseLikeUseCase = toggleCourseLikeUseCase
+        self.courseLikeStatusNotifier = courseLikeStatusNotifier
     }
 
     func transform(input: Input) -> Output {
@@ -62,6 +65,7 @@ final class CourseListViewModel {
         bindCategorySelection(input: input)
         bindSortSelection(input: input)
         bindLikeAction(input: input)
+        bindExternalLikeState()
 
         return Output(
             state: makeStateDriver(),
@@ -122,6 +126,7 @@ private extension CourseListViewModel {
                 guard let self else { return .empty() }
 
                 let toggledLikeState = !course.isLiked
+
                 self.updateLikeStateLocally(
                     courseID: course.id,
                     isLiked: toggledLikeState
@@ -145,23 +150,34 @@ private extension CourseListViewModel {
             .disposed(by: disposeBag)
     }
 
+    func bindExternalLikeState() {
+        courseLikeStatusNotifier.observe()
+            .subscribe(with: self) { owner, payload in
+                owner.updateLikeStateLocally(
+                    courseID: payload.courseID,
+                    isLiked: payload.isLiked
+                )
+            }
+            .disposed(by: disposeBag)
+    }
+
     func makeStateDriver() -> Driver<CourseListViewState> {
-        let coursesObservable = makeFilteredAndSortedCoursesObservable()
+        let filteredAndSortedCoursesObservable = makeFilteredAndSortedCoursesObservable()
 
         return Observable
             .combineLatest(
                 makeCategoryCellViewModelsObservable(),
-                coursesObservable,
+                filteredAndSortedCoursesObservable,
                 selectedSortTypeRelay.asObservable()
             )
-            .map { categories, courses, sortType in
+            .map { categories, courses, selectedSortType in
                 let courseCellViewModels = courses.map(CourseListCellViewModelMapper.map)
 
                 return CourseListViewState(
                     categories: categories,
                     courses: courseCellViewModels,
                     courseCountText: "\(courseCellViewModels.count)개",
-                    selectedSortType: sortType
+                    selectedSortType: selectedSortType
                 )
             }
             .asDriver(

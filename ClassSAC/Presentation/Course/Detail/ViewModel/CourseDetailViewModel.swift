@@ -13,7 +13,6 @@ final class CourseDetailViewModel {
 
     struct Input {
         let viewDidLoad: Observable<Void>
-        let viewWillAppear: Observable<Void>
         let didTapLikeButton: Observable<Void>
         let didTapMoreCommentsButton: Observable<Void>
     }
@@ -54,6 +53,7 @@ final class CourseDetailViewModel {
     private let fetchCourseDetailUseCase: FetchCourseDetailUseCase
     private let fetchCourseCommentsUseCase: FetchCourseCommentsUseCase
     private let toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+    private let courseLikeStatusNotifier: CourseLikeStatusBroadcasting
 
     private let disposeBag = DisposeBag()
 
@@ -66,18 +66,21 @@ final class CourseDetailViewModel {
         courseID: String,
         fetchCourseDetailUseCase: FetchCourseDetailUseCase,
         fetchCourseCommentsUseCase: FetchCourseCommentsUseCase,
-        toggleCourseLikeUseCase: ToggleCourseLikeUseCase
+        toggleCourseLikeUseCase: ToggleCourseLikeUseCase,
+        courseLikeStatusNotifier: CourseLikeStatusBroadcasting
     ) {
         self.courseID = courseID
         self.fetchCourseDetailUseCase = fetchCourseDetailUseCase
         self.fetchCourseCommentsUseCase = fetchCourseCommentsUseCase
         self.toggleCourseLikeUseCase = toggleCourseLikeUseCase
+        self.courseLikeStatusNotifier = courseLikeStatusNotifier
     }
 
     func transform(input: Input) -> Output {
         bindFetchCourseDetail(input: input)
         bindFetchComments(input: input)
         bindLikeAction(input: input)
+        bindExternalLikeState()
 
         return Output(
             state: makeStateDriver(),
@@ -115,11 +118,7 @@ private extension CourseDetailViewModel {
     }
 
     func bindFetchComments(input: Input) {
-        Observable
-            .merge(
-                input.viewDidLoad,
-                input.viewWillAppear.skip(1)
-            )
+        input.viewDidLoad
             .flatMapLatest { [weak self] _ -> Observable<[CourseComment]> in
                 guard let self else { return .empty() }
 
@@ -141,6 +140,7 @@ private extension CourseDetailViewModel {
                 guard let self else { return .empty() }
 
                 let toggledLikeState = !courseDetail.isLiked
+
                 self.updateLikeStateLocally(isLiked: toggledLikeState)
 
                 return self.toggleCourseLikeUseCase.execute(
@@ -155,6 +155,19 @@ private extension CourseDetailViewModel {
                 .catchAndReturn(())
             }
             .subscribe()
+            .disposed(by: disposeBag)
+    }
+
+    func bindExternalLikeState() {
+        courseLikeStatusNotifier.observe()
+            .subscribe(with: self) { owner, payload in
+                guard let currentCourseDetail = owner.courseDetailRelay.value else { return }
+                guard currentCourseDetail.id == payload.courseID else { return }
+
+                owner.courseDetailRelay.accept(
+                    currentCourseDetail.updatingLikeState(payload.isLiked)
+                )
+            }
             .disposed(by: disposeBag)
     }
 
@@ -177,9 +190,11 @@ private extension CourseDetailViewModel {
 
                 return CourseDetailViewState(
                     imageURLs: courseDetail.imageURLs,
+                    categoryTitle: courseDetail.category.title,
                     title: courseDetail.title,
                     descriptionText: courseDetail.description,
                     creatorNick: courseDetail.creator.nick,
+                    creatorProfileImagePath: courseDetail.creator.profileImageURL,
                     isLiked: courseDetail.isLiked,
                     locationText: self.displayText(courseDetail.location),
                     durationText: self.durationText(from: courseDetail.date),
@@ -223,6 +238,7 @@ private extension CourseDetailViewModel {
         CourseCommentPreviewCellViewModel(
             commentID: comment.id,
             writerNick: comment.writer.nick,
+            profileImagePath: comment.writer.profileImageURL,
             contentText: comment.content,
             createdAtText: comment.createdAt?.courseCommentDisplayText ?? Message.justNow
         )
@@ -334,9 +350,11 @@ private extension CourseDetailViewModel {
     static var emptyState: CourseDetailViewState {
         CourseDetailViewState(
             imageURLs: [],
+            categoryTitle: "",
             title: "",
             descriptionText: "",
             creatorNick: "",
+            creatorProfileImagePath: nil,
             isLiked: false,
             locationText: Message.undecided,
             durationText: Message.undecided,
@@ -360,9 +378,11 @@ private extension CourseDetailViewState {
     func copy(isLoading: Bool) -> CourseDetailViewState {
         CourseDetailViewState(
             imageURLs: imageURLs,
+            categoryTitle: categoryTitle,
             title: title,
             descriptionText: descriptionText,
             creatorNick: creatorNick,
+            creatorProfileImagePath: creatorProfileImagePath,
             isLiked: isLiked,
             locationText: locationText,
             durationText: durationText,

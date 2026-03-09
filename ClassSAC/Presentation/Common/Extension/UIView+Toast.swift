@@ -38,17 +38,18 @@ extension UIView {
 }
 
 final class PaddingLabel: UILabel {
-    private let insets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
+
+    var textInsets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
 
     override func drawText(in rect: CGRect) {
-        super.drawText(in: rect.inset(by: insets))
+        super.drawText(in: rect.inset(by: textInsets))
     }
 
     override var intrinsicContentSize: CGSize {
         let size = super.intrinsicContentSize
         return CGSize(
-            width: size.width + insets.left + insets.right,
-            height: size.height + insets.top + insets.bottom
+            width: size.width + textInsets.left + textInsets.right,
+            height: size.height + textInsets.top + textInsets.bottom
         )
     }
 }

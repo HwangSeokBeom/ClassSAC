@@ -9,9 +9,11 @@ import Foundation
 
 struct CourseDetailViewState {
     let imageURLs: [String]
+    let categoryTitle: String
     let title: String
     let descriptionText: String
     let creatorNick: String
+    let creatorProfileImagePath: String?
     let isLiked: Bool
 
     let locationText: String

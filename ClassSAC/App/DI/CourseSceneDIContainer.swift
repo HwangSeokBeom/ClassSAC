@@ -5,11 +5,6 @@
 //  Created by Hwangseokbeom on 3/8/26.
 //
 
-//
-//  CourseSceneDIContainer.swift
-//  ClassSAC
-//
-
 import UIKit
 
 final class CourseSceneDIContainer {
@@ -25,7 +20,11 @@ final class CourseSceneDIContainer {
         self.accessTokenStore = accessTokenStore
     }
 
-    private lazy var courseRemoteDataSource: CourseRemoteDataSource = CourseRemoteDataSource(
+    private lazy var courseRemoteDataSource = CourseRemoteDataSource(
+        httpClient: httpClient
+    )
+
+    private lazy var courseCommentRemoteDataSource = CourseCommentRemoteDataSource(
         httpClient: httpClient
     )
 
@@ -33,9 +32,15 @@ final class CourseSceneDIContainer {
         remoteDataSource: courseRemoteDataSource
     )
 
+    private lazy var courseCommentRepository: CourseCommentRepository = DefaultCourseCommentRepository(
+        remoteDataSource: courseCommentRemoteDataSource
+    )
+
     private lazy var thumbnailProvider: CourseThumbnailProviding = KingfisherCourseThumbnailProvider(
         accessTokenStore: accessTokenStore
     )
+
+    private lazy var courseLikeStatusNotifier: CourseLikeStatusBroadcasting = CourseLikeStatusNotifier()
 
     private func makeFetchCoursesUseCase() -> FetchCoursesUseCase {
         DefaultFetchCoursesUseCase(courseRepository: courseRepository)
@@ -46,7 +51,18 @@ final class CourseSceneDIContainer {
     }
 
     private func makeToggleCourseLikeUseCase() -> ToggleCourseLikeUseCase {
-        DefaultToggleCourseLikeUseCase(courseRepository: courseRepository)
+        DefaultToggleCourseLikeUseCase(
+            courseRepository: courseRepository,
+            courseLikeStatusNotifier: courseLikeStatusNotifier
+        )
+    }
+
+    private func makeFetchCourseDetailUseCase() -> FetchCourseDetailUseCase {
+        DefaultFetchCourseDetailUseCase(courseRepository: courseRepository)
+    }
+
+    private func makeFetchCourseCommentsUseCase() -> FetchCourseCommentsUseCase {
+        DefaultFetchCourseCommentsUseCase(courseCommentRepository: courseCommentRepository)
     }
 
     func makeCourseListViewController(
@@ -54,7 +70,8 @@ final class CourseSceneDIContainer {
     ) -> CourseListViewController {
         let courseListViewModel = CourseListViewModel(
             fetchCoursesUseCase: makeFetchCoursesUseCase(),
-            toggleCourseLikeUseCase: makeToggleCourseLikeUseCase()
+            toggleCourseLikeUseCase: makeToggleCourseLikeUseCase(),
+            courseLikeStatusNotifier: courseLikeStatusNotifier
         )
 
         return CourseListViewController(
@@ -69,7 +86,8 @@ final class CourseSceneDIContainer {
     ) -> SearchViewController {
         let searchViewModel = SearchViewModel(
             searchCoursesUseCase: makeSearchCoursesUseCase(),
-            toggleCourseLikeUseCase: makeToggleCourseLikeUseCase()
+            toggleCourseLikeUseCase: makeToggleCourseLikeUseCase(),
+            courseLikeStatusNotifier: courseLikeStatusNotifier
         )
 
         return SearchViewController(
@@ -91,11 +109,30 @@ final class CourseSceneDIContainer {
     func makeCourseDetailViewController(
         courseID: String,
         courseFlowCoordinator: CourseFlowCoordinating
+    ) -> CourseDetailViewController {
+        let courseDetailViewModel = CourseDetailViewModel(
+            courseID: courseID,
+            fetchCourseDetailUseCase: makeFetchCourseDetailUseCase(),
+            fetchCourseCommentsUseCase: makeFetchCourseCommentsUseCase(),
+            toggleCourseLikeUseCase: makeToggleCourseLikeUseCase(),
+            courseLikeStatusNotifier: courseLikeStatusNotifier
+        )
+
+        return CourseDetailViewController(
+            viewModel: courseDetailViewModel,
+            thumbnailProvider: thumbnailProvider,
+            courseFlowCoordinator: courseFlowCoordinator
+        )
+    }
+
+    func makeCourseCommentListViewController(
+        courseID: String,
+        courseFlowCoordinator: CourseFlowCoordinating
     ) -> UIViewController {
-        let detailViewController = UIViewController()
-        detailViewController.view.backgroundColor = AppColor.bgPrimary
-        detailViewController.title = courseID
-        return detailViewController
+        let courseCommentListViewController = UIViewController()
+        courseCommentListViewController.view.backgroundColor = AppColor.bgPrimary
+        courseCommentListViewController.title = "댓글"
+        return courseCommentListViewController
     }
 
     func makeProfileViewController(

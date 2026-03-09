@@ -37,7 +37,7 @@ final class CourseDetailInfoView: UIView {
         label.font = AppFont.body.font
         label.textColor = AppColor.textPrimary
         label.textAlignment = .center
-        numberOfLines(label: label)
+        label.numberOfLines = 0
         return label
     }()
 

@@ -53,7 +53,7 @@ final class CourseListViewController: UIViewController {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: false)
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         bind()
