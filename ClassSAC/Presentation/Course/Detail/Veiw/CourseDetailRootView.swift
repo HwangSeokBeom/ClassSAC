@@ -112,9 +112,9 @@ final class CourseDetailRootView: BaseRootView {
     let infoStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
-        stackView.alignment = .fill
+        stackView.alignment = .center
         stackView.distribution = .fillEqually
-        stackView.spacing = 14
+        stackView.spacing = 10
         return stackView
     }()
 
@@ -171,14 +171,19 @@ final class CourseDetailRootView: BaseRootView {
     let secondCommentPreviewView = CourseCommentPreviewView()
 
     let moreCommentsButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("커뮤니티 더보기", for: .normal)
-        button.setTitleColor(AppColor.accentPrimary, for: .normal)
-        button.titleLabel?.font = AppFont.caption.font
-        button.setImage(UIImage(systemName: "arrow.right"), for: .normal)
+        var configuration = UIButton.Configuration.plain()
+        
+        configuration.title = "커뮤니티 더보기"
+        configuration.image = UIImage(systemName: "chevron.right")
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = 6
+
+        let button = UIButton(configuration: configuration)
         button.tintColor = AppColor.accentPrimary
-        button.semanticContentAttribute = .forceRightToLeft
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 6, bottom: 0, right: -6)
+        button.setTitleColor(AppColor.accentPrimary, for: .normal)
+
+        button.titleLabel?.font = AppFont.caption.font
+
         return button
     }()
 
@@ -252,12 +257,12 @@ final class CourseDetailRootView: BaseRootView {
 
         imageCollectionView.snp.makeConstraints { make in
             make.top.horizontalEdges.equalToSuperview()
-            make.height.equalTo(imageCollectionView.snp.width)
+            make.height.equalTo(imageCollectionView.snp.width).multipliedBy(0.74)
         }
 
         imagePageControl.snp.makeConstraints { make in
             make.centerX.equalTo(imageCollectionView)
-            make.bottom.equalTo(imageCollectionView).inset(16)
+            make.bottom.equalTo(imageCollectionView).inset(14)
         }
 
         backButton.snp.makeConstraints { make in
@@ -273,7 +278,7 @@ final class CourseDetailRootView: BaseRootView {
         }
 
         categoryTagLabel.snp.makeConstraints { make in
-            make.top.equalTo(imageCollectionView.snp.bottom).offset(20)
+            make.top.equalTo(imageCollectionView.snp.bottom).offset(18)
             make.leading.equalToSuperview().offset(22)
         }
 
@@ -283,7 +288,7 @@ final class CourseDetailRootView: BaseRootView {
         }
 
         priceContainerView.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(14)
+            make.top.equalTo(titleLabel.snp.bottom).offset(12)
             make.horizontalEdges.equalToSuperview().inset(22)
         }
 
@@ -297,30 +302,30 @@ final class CourseDetailRootView: BaseRootView {
         }
 
         infoStackView.snp.makeConstraints { make in
-            make.top.equalTo(priceContainerView.snp.bottom).offset(24)
+            make.top.equalTo(priceContainerView.snp.bottom).offset(20)
             make.horizontalEdges.equalToSuperview().inset(22)
-            make.height.equalTo(92)
+            make.height.equalTo(84)
         }
 
         introductionSectionView.snp.makeConstraints { make in
-            make.top.equalTo(infoStackView.snp.bottom).offset(28)
+            make.top.equalTo(infoStackView.snp.bottom).offset(24)
             make.horizontalEdges.equalToSuperview().inset(22)
             make.height.equalTo(22)
         }
 
         introductionLabel.snp.makeConstraints { make in
-            make.top.equalTo(introductionSectionView.snp.bottom).offset(14)
+            make.top.equalTo(introductionSectionView.snp.bottom).offset(12)
             make.horizontalEdges.equalToSuperview().inset(22)
         }
 
         creatorSectionView.snp.makeConstraints { make in
-            make.top.equalTo(introductionLabel.snp.bottom).offset(28)
+            make.top.equalTo(introductionLabel.snp.bottom).offset(24)
             make.horizontalEdges.equalToSuperview().inset(22)
             make.height.equalTo(22)
         }
 
         creatorCardView.snp.makeConstraints { make in
-            make.top.equalTo(creatorSectionView.snp.bottom).offset(14)
+            make.top.equalTo(creatorSectionView.snp.bottom).offset(12)
             make.horizontalEdges.equalToSuperview().inset(22)
             make.height.equalTo(88)
         }
@@ -338,7 +343,7 @@ final class CourseDetailRootView: BaseRootView {
         }
 
         communitySectionView.snp.makeConstraints { make in
-            make.top.equalTo(creatorCardView.snp.bottom).offset(28)
+            make.top.equalTo(creatorCardView.snp.bottom).offset(24)
             make.leading.equalToSuperview().offset(22)
             make.height.equalTo(22)
         }
@@ -350,19 +355,19 @@ final class CourseDetailRootView: BaseRootView {
         }
 
         firstCommentPreviewView.snp.makeConstraints { make in
-            make.top.equalTo(communitySectionView.snp.bottom).offset(14)
+            make.top.equalTo(communitySectionView.snp.bottom).offset(12)
             make.horizontalEdges.equalToSuperview().inset(22)
         }
 
         secondCommentPreviewView.snp.makeConstraints { make in
-            make.top.equalTo(firstCommentPreviewView.snp.bottom).offset(12)
+            make.top.equalTo(firstCommentPreviewView.snp.bottom).offset(10)
             make.horizontalEdges.equalToSuperview().inset(22)
         }
 
         moreCommentsButton.snp.makeConstraints { make in
-            make.top.equalTo(secondCommentPreviewView.snp.bottom).offset(20)
+            make.top.equalTo(secondCommentPreviewView.snp.bottom).offset(18)
             make.centerX.equalToSuperview()
-            make.bottom.equalToSuperview().inset(32)
+            make.bottom.equalToSuperview().inset(28)
         }
 
         loadingIndicatorView.snp.makeConstraints { make in
@@ -379,19 +384,16 @@ final class CourseDetailRootView: BaseRootView {
 
         durationInfoView.configure(
             icon: UIImage(systemName: "clock"),
-            title: "시간",
             value: "미정"
         )
 
         locationInfoView.configure(
             icon: UIImage(systemName: "mappin.and.ellipse"),
-            title: "장소",
             value: "미정"
         )
 
         capacityInfoView.configure(
             icon: UIImage(systemName: "person.2"),
-            title: "인원",
             value: "미정"
         )
 
