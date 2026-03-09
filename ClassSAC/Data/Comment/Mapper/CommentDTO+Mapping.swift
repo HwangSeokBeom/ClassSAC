@@ -9,7 +9,7 @@ import Foundation
 
 extension CommentDTO {
 
-    func toEntity(courseID: String, currentUserID: String?) -> Comment {
+    func toEntity(courseID: String) -> Comment {
         Comment(
             id: commentID,
             courseID: courseID,
@@ -19,8 +19,7 @@ extension CommentDTO {
                 userID: creator.userID,
                 nickname: creator.nick,
                 profileImageURL: creator.profileImage
-            ),
-            isWrittenByCurrentUser: creator.userID == currentUserID
+            )
         )
     }
 }

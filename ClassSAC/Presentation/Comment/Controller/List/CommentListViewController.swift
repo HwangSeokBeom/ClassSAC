@@ -18,6 +18,7 @@ final class CommentListViewController: UIViewController {
 
     private let disposeBag = DisposeBag()
 
+    private let selectedSortOptionRelay = PublishRelay<CommentSortOption>()
     private let editCommentIDRelay = PublishRelay<String>()
     private let deleteCommentIDRelay = PublishRelay<String>()
     private let confirmDeleteRelay = PublishRelay<Void>()
@@ -60,8 +61,7 @@ private extension CommentListViewController {
     func bind() {
         let input = CommentListViewModel.Input(
             viewDidLoad: Observable.just(()),
-            didTapLatestSortButton: rootView.sortButton.rx.tap.asObservable(),
-            didTapOldestSortButton: .empty(),
+            didSelectSortOption: selectedSortOptionRelay.asObservable(),
             didTapWriteButton: rootView.writeCommentButton.rx.tap.asObservable(),
             didTapEditButton: editCommentIDRelay.asObservable(),
             didTapDeleteButton: deleteCommentIDRelay.asObservable(),
@@ -168,12 +168,16 @@ private extension CommentListViewController {
                 owner.navigationController?.popViewController(animated: true)
             }
             .disposed(by: disposeBag)
+
+        rootView.onSelectSortOption = { [weak self] sortOption in
+            self?.selectedSortOptionRelay.accept(sortOption)
+        }
     }
 
     func render(state: CommentListViewState) {
         rootView.updateNavigationTitle(state.courseTitle)
-        rootView.updateCommentCount(state.commentCellViewModels.count)
-        rootView.updateSortButtonTitle(state.selectedSortTitle)
+        rootView.updateCommentCount(state.commentCount)
+        rootView.updateSortButtonTitle(state.selectedSortOption.title)
 
         rootView.emptyStateLabel.isHidden = state.isEmptyViewHidden
         rootView.commentTableView.isHidden = !state.isEmptyViewHidden

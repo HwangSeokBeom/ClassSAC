@@ -41,7 +41,8 @@ private extension CommentEditorViewController {
         let input = CommentEditorViewModel.Input(
             viewDidLoad: Observable.just(()),
             contentTextDidChange: rootView.contentTextView.rx.text.orEmpty.asObservable(),
-            didTapConfirmButton: rootView.confirmButton.rx.tap.asObservable()
+            didTapConfirmButton: rootView.confirmButton.rx.tap.asObservable(),
+            didTapBackButton: rootView.closeButton.rx.tap.asObservable()
         )
 
         let output = viewModel.transform(input: input)
@@ -49,7 +50,7 @@ private extension CommentEditorViewController {
         bindState(output: output)
         bindRoute(output: output)
         bindError(output: output)
-        bindAction()
+        bindPlaceholder()
     }
 
     func bindState(output: CommentEditorViewModel.Output) {
@@ -65,7 +66,7 @@ private extension CommentEditorViewController {
             .emit(with: self) { owner, route in
                 switch route {
                 case .close:
-                    owner.navigationController?.popViewController(animated: true)
+                    owner.dismiss(animated: true)
                 }
             }
             .disposed(by: disposeBag)
@@ -79,26 +80,28 @@ private extension CommentEditorViewController {
             .disposed(by: disposeBag)
     }
 
-    func bindAction() {
-        rootView.backButton.rx.tap
-            .bind(with: self) { owner, _ in
-                owner.navigationController?.popViewController(animated: true)
+    func bindPlaceholder() {
+        rootView.contentTextView.rx.text.orEmpty
+            .map { !$0.isEmpty }
+            .distinctUntilChanged()
+            .bind(with: self) { owner, isHidden in
+                owner.rootView.updatePlaceholderVisibility(isHidden: isHidden)
             }
             .disposed(by: disposeBag)
     }
 
     func render(state: CommentEditorViewState) {
-        title = state.navigationTitle
-
-        rootView.courseTitleLabel.text = state.courseTitle
+        rootView.navigationTitleLabel.text = state.navigationTitle
         rootView.categoryTagLabel.text = state.categoryTitle
+        rootView.courseTitleLabel.text = state.courseTitle
 
         if rootView.contentTextView.text != state.contentText {
             rootView.contentTextView.text = state.contentText
         }
 
-        rootView.countLabel.text = state.currentCountText
-        rootView.confirmButton.setTitle(state.confirmButtonTitle, for: .normal)
+        rootView.countLabel.text = state.countText
+        rootView.updateConfirmButtonTitle(state.confirmButtonTitle)
+
         rootView.confirmButton.isEnabled = state.isConfirmButtonEnabled
         rootView.confirmButton.alpha = state.isConfirmButtonEnabled ? 1.0 : 0.4
 
@@ -107,5 +110,7 @@ private extension CommentEditorViewController {
         } else {
             rootView.loadingIndicatorView.stopAnimating()
         }
+
+        rootView.updatePlaceholderVisibility(isHidden: !state.contentText.isEmpty)
     }
 }

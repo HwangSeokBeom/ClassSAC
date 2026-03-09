@@ -11,6 +11,7 @@ protocol CourseFlowCoordinating: AnyObject {
     func handle(route: CourseListRoute, from viewController: UIViewController)
     func handle(route: SearchRoute, from viewController: UIViewController)
     func handle(route: CourseDetailRoute, from viewController: UIViewController)
+    func handleCommentListRoute(_ route: CommentListRoute, from viewController: UIViewController)
     func requestLogout()
 }
 
@@ -128,9 +129,11 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
 
     func handle(route: CourseDetailRoute, from viewController: UIViewController) {
         switch route {
-        case .commentList(let courseID):
+        case .commentList(let courseID, let courseTitle, let categoryTitle):
             let commentListViewController = courseSceneDIContainer.makeCourseCommentListViewController(
                 courseID: courseID,
+                courseTitle: courseTitle,
+                categoryTitle: categoryTitle,
                 courseFlowCoordinator: self
             )
 
@@ -138,6 +141,17 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
                 commentListViewController,
                 animated: true
             )
+        }
+    }
+
+    func handleCommentListRoute(_ route: CommentListRoute, from viewController: UIViewController) {
+        switch route {
+        case .commentEditor(let context):
+            let commentEditorViewController = courseSceneDIContainer.makeCommentEditorViewController(
+                context: context
+            )
+
+            viewController.present(commentEditorViewController, animated: true)
         }
     }
 

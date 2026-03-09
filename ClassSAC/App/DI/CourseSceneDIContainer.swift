@@ -11,13 +11,16 @@ final class CourseSceneDIContainer {
 
     private let httpClient: ClassSACHTTPClienting
     private let accessTokenStore: AccessTokenStoring
+    private let currentUserStore: CurrentUserStoring
 
     init(
         httpClient: ClassSACHTTPClienting,
-        accessTokenStore: AccessTokenStoring
+        accessTokenStore: AccessTokenStoring,
+        currentUserStore: CurrentUserStoring
     ) {
         self.httpClient = httpClient
         self.accessTokenStore = accessTokenStore
+        self.currentUserStore = currentUserStore
     }
 
     private lazy var courseRemoteDataSource = CourseRemoteDataSource(
@@ -33,8 +36,7 @@ final class CourseSceneDIContainer {
     )
 
     private lazy var commentRepository: CommentRepository = DefaultCommentRepository(
-        remoteDataSource: commentRemoteDataSource,
-        currentUserIDProvider: { nil }
+        remoteDataSource: commentRemoteDataSource
     )
 
     private lazy var thumbnailProvider: CourseThumbnailProviding = KingfisherCourseThumbnailProvider(
@@ -63,7 +65,19 @@ final class CourseSceneDIContainer {
     }
 
     private func makeFetchCommentsUseCase() -> FetchCommentsUseCase {
-        DefaultFetchCommentsUseCase(commentRepository: commentRepository)
+        DefaultFetchCommentsUseCase(repository: commentRepository)
+    }
+
+    private func makeCreateCommentUseCase() -> CreateCommentUseCase {
+        DefaultCreateCommentUseCase(commentRepository: commentRepository)
+    }
+
+    private func makeUpdateCommentUseCase() -> UpdateCommentUseCase {
+        DefaultUpdateCommentUseCase(commentRepository: commentRepository)
+    }
+
+    private func makeDeleteCommentUseCase() -> DeleteCommentUseCase {
+        DefaultDeleteCommentUseCase(commentRepository: commentRepository)
     }
 
     func makeCourseListViewController(
@@ -128,12 +142,39 @@ final class CourseSceneDIContainer {
 
     func makeCourseCommentListViewController(
         courseID: String,
+        courseTitle: String,
+        categoryTitle: String,
         courseFlowCoordinator: CourseFlowCoordinating
-    ) -> UIViewController {
-        let courseCommentListViewController = UIViewController()
-        courseCommentListViewController.view.backgroundColor = AppColor.bgPrimary
-        courseCommentListViewController.title = "클래스 댓글"
-        return courseCommentListViewController
+    ) -> CommentListViewController {
+
+        let commentListViewModel = CommentListViewModel(
+            courseID: courseID,
+            courseTitle: courseTitle,
+            categoryTitle: categoryTitle,
+            fetchCommentsUseCase: makeFetchCommentsUseCase(),
+            deleteCommentUseCase: makeDeleteCommentUseCase(),
+            currentUserProvider: currentUserStore
+        )
+
+        return CommentListViewController(
+            viewModel: commentListViewModel,
+            thumbnailProvider: thumbnailProvider,
+            courseFlowCoordinator: courseFlowCoordinator
+        )
+    }
+
+    func makeCommentEditorViewController(
+        context: CommentEditorContext
+    ) -> CommentEditorViewController {
+        let commentEditorViewModel = CommentEditorViewModel(
+            context: context,
+            createCommentUseCase: makeCreateCommentUseCase(),
+            updateCommentUseCase: makeUpdateCommentUseCase()
+        )
+
+        return CommentEditorViewController(
+            viewModel: commentEditorViewModel
+        )
     }
 
     func makeProfileViewController(

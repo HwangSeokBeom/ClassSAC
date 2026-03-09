@@ -17,6 +17,8 @@ final class AppDIContainer {
         accessTokenStore: accessTokenStore
     )
 
+    private lazy var currentUserStore: CurrentUserStoring = UserDefaultsCurrentUserStore()
+
     func makeAccessTokenStore() -> AccessTokenStoring {
         accessTokenStore
     }
@@ -25,6 +27,7 @@ final class AppDIContainer {
         AuthSceneDIContainer(
             httpClient: httpClient,
             accessTokenStore: accessTokenStore,
+            currentUserStore: currentUserStore,
             appDIContainer: self
         )
     }
@@ -32,7 +35,8 @@ final class AppDIContainer {
     func makeCourseSceneDIContainer() -> CourseSceneDIContainer {
         CourseSceneDIContainer(
             httpClient: httpClient,
-            accessTokenStore: accessTokenStore
+            accessTokenStore: accessTokenStore,
+            currentUserStore: currentUserStore
         )
     }
 }

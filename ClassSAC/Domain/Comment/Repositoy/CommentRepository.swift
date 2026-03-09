@@ -8,7 +8,7 @@
 import Foundation
 import RxSwift
 
-protocol CommentRepository {
+protocol CommentRepository: AnyObject {
     func fetchComments(courseID: String) -> Single<[Comment]>
     func createComment(courseID: String, content: String) -> Single<Comment>
     func updateComment(courseID: String, commentID: String, content: String) -> Single<Comment>

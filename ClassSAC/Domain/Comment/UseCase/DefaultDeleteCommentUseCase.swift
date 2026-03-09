@@ -17,6 +17,9 @@ final class DefaultDeleteCommentUseCase: DeleteCommentUseCase {
     }
 
     func execute(courseID: String, commentID: String) -> Single<Void> {
-        commentRepository.deleteComment(courseID: courseID, commentID: commentID)
+        commentRepository.deleteComment(
+            courseID: courseID,
+            commentID: commentID
+        )
     }
 }

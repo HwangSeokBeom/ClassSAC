@@ -217,10 +217,21 @@ private extension CourseDetailViewModel {
 
     func makeRouteSignal(input: Input) -> Signal<CourseDetailRoute> {
         input.didTapMoreCommentsButton
-            .withLatestFrom(commentsRelay.asObservable())
-            .filter { !$0.isEmpty }
-            .map { [courseID] _ in
-                CourseDetailRoute.commentList(courseID: courseID)
+            .withLatestFrom(
+                Observable.combineLatest(
+                    courseDetailRelay.compactMap { $0 },
+                    commentsRelay.asObservable()
+                )
+            )
+            .filter { _, comments in
+                !comments.isEmpty
+            }
+            .map { [courseID] courseDetail, _ in
+                CourseDetailRoute.commentList(
+                    courseID: courseID,
+                    courseTitle: courseDetail.title,
+                    categoryTitle: courseDetail.category.title
+                )
             }
             .asSignal(onErrorSignalWith: .empty())
     }

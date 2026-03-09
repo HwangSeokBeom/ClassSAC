@@ -30,7 +30,7 @@ final class CommentTableViewCell: UITableViewCell {
 
     private let writerNameLabel: UILabel = {
         let label = UILabel()
-        label.font = AppFont.body.font
+        label.font = AppFont.cardTitle.font
         label.textColor = AppColor.textPrimary
         label.numberOfLines = 1
         return label
@@ -38,7 +38,7 @@ final class CommentTableViewCell: UITableViewCell {
 
     private let createdAtLabel: UILabel = {
         let label = UILabel()
-        label.font = AppFont.caption.font
+        label.font = AppFont.body.font
         label.textColor = AppColor.textSecondary
         label.numberOfLines = 1
         return label
@@ -47,14 +47,14 @@ final class CommentTableViewCell: UITableViewCell {
     private let editButton: UIButton = {
         let button = UIButton(type: .system)
         button.tintColor = AppColor.textTertiary
-        button.setImage(AppIcon.pencil.image, for: .normal)
+        button.setImage(UIImage(systemName: "pencil"), for: .normal)
         return button
     }()
 
     private let deleteButton: UIButton = {
         let button = UIButton(type: .system)
         button.tintColor = AppColor.textTertiary
-        button.setImage(AppIcon.trash.image, for: .normal)
+        button.setImage(UIImage(systemName: "trash"), for: .normal)
         return button
     }()
 
@@ -87,8 +87,8 @@ final class CommentTableViewCell: UITableViewCell {
         createdAtLabel.text = viewModel.createdAtText
         contentLabel.text = viewModel.contentText
 
-        editButton.isHidden = viewModel.isEditButtonHidden
-        deleteButton.isHidden = viewModel.isDeleteButtonHidden
+        editButton.isHidden = !viewModel.isMine
+        deleteButton.isHidden = !viewModel.isMine
 
         thumbnailProvider.loadThumbnail(
             on: profileImageView,
@@ -139,13 +139,13 @@ private extension CommentTableViewCell {
         deleteButton.snp.makeConstraints { make in
             make.top.equalTo(profileImageView)
             make.trailing.equalToSuperview().inset(24)
-            make.size.equalTo(20)
+            make.size.equalTo(18)
         }
 
         editButton.snp.makeConstraints { make in
             make.centerY.equalTo(deleteButton)
-            make.trailing.equalTo(deleteButton.snp.leading).offset(-10)
-            make.size.equalTo(20)
+            make.trailing.equalTo(deleteButton.snp.leading).offset(-8)
+            make.size.equalTo(18)
         }
 
         contentLabel.snp.makeConstraints { make in

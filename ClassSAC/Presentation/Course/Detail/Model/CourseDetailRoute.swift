@@ -8,5 +8,9 @@
 import Foundation
 
 enum CourseDetailRoute {
-    case commentList(courseID: String)
+    case commentList(
+        courseID: String,
+        courseTitle: String,
+        categoryTitle: String
+    )
 }

@@ -32,6 +32,7 @@ enum AppIcon: String {
     case chervronLeft = "chevron.left"
     case chervronRight = "chevron.right"
     case squareAndPencil = "square.and.pencil"
+    case xmark = "xmark"
 
     var image: UIImage? {
         UIImage(systemName: rawValue)

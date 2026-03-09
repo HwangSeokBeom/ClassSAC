@@ -21,12 +21,17 @@ final class LoginViewModel {
     }
 
     private let loginUseCase: LoginUseCase
+    private let currentUserStore: CurrentUserStoring
 
     var onLoginSuccess: ((UserSession) -> Void)?
     var onLoginFailure: ((String) -> Void)?
 
-    init(loginUseCase: LoginUseCase) {
+    init(
+        loginUseCase: LoginUseCase,
+        currentUserStore: CurrentUserStoring
+    ) {
         self.loginUseCase = loginUseCase
+        self.currentUserStore = currentUserStore
     }
 
     func transform(input: Input) -> Output {
@@ -82,6 +87,7 @@ final class LoginViewModel {
         ) { [weak self] result in
             switch result {
             case .success(let userSession):
+                self?.currentUserStore.saveCurrentUserID(userSession.userID)
                 self?.onLoginSuccess?(userSession)
 
             case .failure(let error):

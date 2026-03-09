@@ -10,13 +10,13 @@ import RxSwift
 
 final class DefaultFetchCommentsUseCase: FetchCommentsUseCase {
 
-    private let commentRepository: CommentRepository
+    private let repository: CommentRepository
 
-    init(commentRepository: CommentRepository) {
-        self.commentRepository = commentRepository
+    init(repository: CommentRepository) {
+        self.repository = repository
     }
 
     func execute(courseID: String) -> Single<[Comment]> {
-        commentRepository.fetchComments(courseID: courseID)
+        repository.fetchComments(courseID: courseID)
     }
 }

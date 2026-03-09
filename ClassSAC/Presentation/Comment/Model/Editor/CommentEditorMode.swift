@@ -11,15 +11,6 @@ enum CommentEditorMode {
     case create(courseID: String)
     case edit(comment: Comment)
 
-    var initialContent: String {
-        switch self {
-        case .create:
-            return ""
-        case .edit(let comment):
-            return comment.content
-        }
-    }
-
     var navigationTitle: String {
         switch self {
         case .create:
@@ -35,6 +26,33 @@ enum CommentEditorMode {
             return "확인"
         case .edit:
             return "확인"
+        }
+    }
+
+    var initialContentText: String {
+        switch self {
+        case .create:
+            return ""
+        case .edit(let comment):
+            return comment.content
+        }
+    }
+
+    var courseID: String {
+        switch self {
+        case .create(let courseID):
+            return courseID
+        case .edit(let comment):
+            return comment.courseID
+        }
+    }
+
+    var editingCommentID: String? {
+        switch self {
+        case .create:
+            return nil
+        case .edit(let comment):
+            return comment.id
         }
     }
 }

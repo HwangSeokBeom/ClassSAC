@@ -9,16 +9,16 @@ import Foundation
 
 struct CommentListViewState {
     let courseTitle: String
-    let selectedSortTitle: String
-    let commentCountText: String
+    let selectedSortOption: CommentSortOption
+    let commentCount: Int
     let commentCellViewModels: [CommentCellViewModel]
     let isEmptyViewHidden: Bool
     let isLoading: Bool
 
     static let empty = CommentListViewState(
         courseTitle: "",
-        selectedSortTitle: CommentSortOption.latest.title,
-        commentCountText: "댓글 0개",
+        selectedSortOption: .latest,
+        commentCount: 0,
         commentCellViewModels: [],
         isEmptyViewHidden: false,
         isLoading: false

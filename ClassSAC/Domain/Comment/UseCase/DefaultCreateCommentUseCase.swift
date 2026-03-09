@@ -10,6 +10,11 @@ import RxSwift
 
 final class DefaultCreateCommentUseCase: CreateCommentUseCase {
 
+    private enum Constant {
+        static let minimumContentCount = 2
+        static let maximumContentCount = 200
+    }
+
     private let commentRepository: CommentRepository
 
     init(commentRepository: CommentRepository) {
@@ -17,6 +22,23 @@ final class DefaultCreateCommentUseCase: CreateCommentUseCase {
     }
 
     func execute(courseID: String, content: String) -> Single<Comment> {
-        commentRepository.createComment(courseID: courseID, content: content)
+        let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedContent.isEmpty else {
+            return .error(CommentError.emptyContent)
+        }
+
+        guard trimmedContent.count >= Constant.minimumContentCount else {
+            return .error(CommentError.tooShortContent)
+        }
+
+        guard trimmedContent.count <= Constant.maximumContentCount else {
+            return .error(CommentError.tooLongContent)
+        }
+
+        return commentRepository.createComment(
+            courseID: courseID,
+            content: trimmedContent
+        )
     }
 }

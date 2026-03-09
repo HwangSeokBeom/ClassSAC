@@ -11,15 +11,18 @@ final class AuthSceneDIContainer {
 
     private let httpClient: ClassSACHTTPClienting
     private let accessTokenStore: AccessTokenStoring
+    private let currentUserStore: CurrentUserStoring
     private unowned let appDIContainer: AppDIContainer
 
     init(
         httpClient: ClassSACHTTPClienting,
         accessTokenStore: AccessTokenStoring,
+        currentUserStore: CurrentUserStoring,
         appDIContainer: AppDIContainer
     ) {
         self.httpClient = httpClient
         self.accessTokenStore = accessTokenStore
+        self.currentUserStore = currentUserStore
         self.appDIContainer = appDIContainer
     }
 
@@ -42,7 +45,8 @@ final class AuthSceneDIContainer {
 
     func makeLoginViewController(authFlowCoordinator: AuthFlowCoordinator) -> LoginViewController {
         let loginViewModel = LoginViewModel(
-            loginUseCase: makeLoginUseCase()
+            loginUseCase: makeLoginUseCase(),
+            currentUserStore: currentUserStore
         )
 
         return LoginViewController(

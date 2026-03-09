@@ -13,8 +13,7 @@ final class CommentListViewModel {
 
     struct Input {
         let viewDidLoad: Observable<Void>
-        let didTapLatestSortButton: Observable<Void>
-        let didTapOldestSortButton: Observable<Void>
+        let didSelectSortOption: Observable<CommentSortOption>
         let didTapWriteButton: Observable<Void>
         let didTapEditButton: Observable<String>
         let didTapDeleteButton: Observable<String>
@@ -34,6 +33,7 @@ final class CommentListViewModel {
     private let categoryTitle: String
     private let fetchCommentsUseCase: FetchCommentsUseCase
     private let deleteCommentUseCase: DeleteCommentUseCase
+    private let currentUserProvider: CurrentUserProviding
 
     private let disposeBag = DisposeBag()
 
@@ -47,38 +47,46 @@ final class CommentListViewModel {
         courseTitle: String,
         categoryTitle: String,
         fetchCommentsUseCase: FetchCommentsUseCase,
-        deleteCommentUseCase: DeleteCommentUseCase
+        deleteCommentUseCase: DeleteCommentUseCase,
+        currentUserProvider: CurrentUserProviding
     ) {
         self.courseID = courseID
         self.courseTitle = courseTitle
         self.categoryTitle = categoryTitle
         self.fetchCommentsUseCase = fetchCommentsUseCase
         self.deleteCommentUseCase = deleteCommentUseCase
+        self.currentUserProvider = currentUserProvider
     }
 
     func transform(input: Input) -> Output {
+
         let routeRelay = PublishRelay<CommentListRoute>()
         let showDeleteAlertRelay = PublishRelay<CommentListAlert>()
         let showErrorMessageRelay = PublishRelay<String>()
 
         bindSort(input: input)
+
         bindFetchComments(
             input: input,
             showErrorMessageRelay: showErrorMessageRelay
         )
+
         bindWriteRoute(
             input: input,
             routeRelay: routeRelay
         )
+
         bindEditRoute(
             input: input,
             routeRelay: routeRelay,
             showErrorMessageRelay: showErrorMessageRelay
         )
+
         bindDeleteAlert(
             input: input,
             showDeleteAlertRelay: showDeleteAlertRelay
         )
+
         bindDeleteComment(
             input: input,
             showErrorMessageRelay: showErrorMessageRelay
@@ -106,14 +114,17 @@ private extension CommentListViewModel {
         relay.accept(mapCommentError(error).userMessage)
     }
 
-    func bindSort(input: Input) {
-        input.didTapLatestSortButton
-            .map { CommentSortOption.latest }
-            .bind(to: sortOptionRelay)
-            .disposed(by: disposeBag)
+    func makeCommentEditorContext(mode: CommentEditorMode) -> CommentEditorContext {
+        CommentEditorContext(
+            courseID: courseID,
+            courseTitle: courseTitle,
+            categoryTitle: categoryTitle,
+            mode: mode
+        )
+    }
 
-        input.didTapOldestSortButton
-            .map { CommentSortOption.oldest }
+    func bindSort(input: Input) {
+        input.didSelectSortOption
             .bind(to: sortOptionRelay)
             .disposed(by: disposeBag)
     }
@@ -155,16 +166,16 @@ private extension CommentListViewModel {
         routeRelay: PublishRelay<CommentListRoute>
     ) {
         input.didTapWriteButton
-            .map { [courseID, courseTitle, categoryTitle] _ in
-                CommentListRoute.commentEditor(
-                    context: CommentEditorContext(
-                        courseID: courseID,
-                        courseTitle: courseTitle,
-                        categoryTitle: categoryTitle,
-                        mode: .create(courseID: courseID)
+            .map { [weak self] _ -> CommentListRoute? in
+                guard let self else { return nil }
+
+                return .commentEditor(
+                    context: self.makeCommentEditorContext(
+                        mode: .create(courseID: self.courseID)
                     )
                 )
             }
+            .compactMap { $0 }
             .bind(to: routeRelay)
             .disposed(by: disposeBag)
     }
@@ -176,20 +187,19 @@ private extension CommentListViewModel {
     ) {
         input.didTapEditButton
             .withLatestFrom(commentsRelay.asObservable()) { commentID, comments in
-                comments.first { $0.id == commentID }
+                (commentID, comments)
             }
-            .subscribe(with: self) { owner, comment in
-                guard let comment else {
+            .subscribe(with: self) { owner, payload in
+                let (commentID, comments) = payload
+
+                guard let comment = comments.first(where: { $0.id == commentID }) else {
                     showErrorMessageRelay.accept(CommentError.commentNotFound.userMessage)
                     return
                 }
 
                 routeRelay.accept(
                     .commentEditor(
-                        context: CommentEditorContext(
-                            courseID: owner.courseID,
-                            courseTitle: owner.courseTitle,
-                            categoryTitle: owner.categoryTitle,
+                        context: owner.makeCommentEditorContext(
                             mode: .edit(comment: comment)
                         )
                     )
@@ -245,26 +255,36 @@ private extension CommentListViewModel {
                 sortOptionRelay.asObservable(),
                 isLoadingRelay.asObservable()
             )
-            .map { [courseTitle] comments, sortOption, isLoading in
-                let sortedComments = comments.sorted(by: sortOption)
+            .map { [weak self] comments, sortOption, isLoading in
+                guard let self else { return .empty }
+
+                let sortedComments = comments.sorted { left, right in
+                    switch sortOption {
+                    case .latest:
+                        return (left.createdAt ?? .distantPast) > (right.createdAt ?? .distantPast)
+
+                    case .oldest:
+                        return (left.createdAt ?? .distantFuture) < (right.createdAt ?? .distantFuture)
+                    }
+                }
+
+                let currentUserID = self.currentUserProvider.currentUserID
 
                 let commentCellViewModels = sortedComments.map { comment in
                     CommentCellViewModel(
                         commentID: comment.id,
-                        writerUserID: comment.writer.userID,
                         writerNickname: comment.writer.nickname,
                         writerProfileImagePath: comment.writer.profileImageURL,
                         contentText: comment.content,
                         createdAtText: CommentTimeFormatter.string(from: comment.createdAt),
-                        isEditButtonHidden: !comment.isWrittenByCurrentUser,
-                        isDeleteButtonHidden: !comment.isWrittenByCurrentUser
+                        isMine: comment.writer.userID == currentUserID
                     )
                 }
 
                 return CommentListViewState(
-                    courseTitle: courseTitle,
-                    selectedSortTitle: sortOption.title,
-                    commentCountText: "댓글 \(comments.count)개",
+                    courseTitle: self.courseTitle,
+                    selectedSortOption: sortOption,
+                    commentCount: comments.count,
                     commentCellViewModels: commentCellViewModels,
                     isEmptyViewHidden: !commentCellViewModels.isEmpty,
                     isLoading: isLoading

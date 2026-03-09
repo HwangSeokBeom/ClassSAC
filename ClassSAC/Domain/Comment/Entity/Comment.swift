@@ -13,7 +13,6 @@ struct Comment {
     let content: String
     let createdAt: Date?
     let writer: CommentWriter
-    let isWrittenByCurrentUser: Bool
 }
 
 struct CommentWriter {

@@ -10,6 +10,8 @@ import SnapKit
 
 final class CommentListRootView: BaseRootView {
 
+    var onSelectSortOption: ((CommentSortOption) -> Void)?
+
     let navigationContainerView = UIView()
 
     let backButton: UIButton = {
@@ -24,7 +26,7 @@ final class CommentListRootView: BaseRootView {
 
     let navigationTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = AppFont.body.font
+        label.font = AppFont.title.font
         label.textColor = AppColor.textPrimary
         label.textAlignment = .center
         label.numberOfLines = 1
@@ -35,7 +37,7 @@ final class CommentListRootView: BaseRootView {
 
     let commentCountLabel: UILabel = {
         let label = UILabel()
-        label.font = AppFont.body.font
+        label.font = AppFont.title.font
         label.textColor = AppColor.textPrimary
         label.numberOfLines = 1
         return label
@@ -44,7 +46,7 @@ final class CommentListRootView: BaseRootView {
     let countSuffixLabel: UILabel = {
         let label = UILabel()
         label.text = "개의 리뷰"
-        label.font = AppFont.caption.font
+        label.font = AppFont.body.font
         label.textColor = AppColor.textSecondary
         label.numberOfLines = 1
         return label
@@ -52,16 +54,21 @@ final class CommentListRootView: BaseRootView {
 
     let sortButton: UIButton = {
         var configuration = UIButton.Configuration.plain()
-        configuration.title = "최신순"
-        configuration.image = AppIcon.sort.image
+        configuration.image = UIImage(systemName: "arrow.up.arrow.down")
         configuration.imagePlacement = .leading
-        configuration.imagePadding = 4
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        configuration.imagePadding = 3
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8)
+        configuration.attributedTitle = AttributedString(
+            CommentSortOption.latest.title,
+            attributes: AttributeContainer([
+                .font: AppFont.caption.font
+            ])
+        )
 
         let button = UIButton(configuration: configuration)
         button.tintColor = AppColor.textSecondary
         button.backgroundColor = AppColor.bgSurface
-        button.layer.cornerRadius = 14
+        button.layer.cornerRadius = 12
         button.clipsToBounds = true
         button.layer.borderWidth = 1
         button.layer.borderColor = AppColor.borderSubtle.cgColor
@@ -99,12 +106,12 @@ final class CommentListRootView: BaseRootView {
     let writeCommentButton: UIButton = {
         var configuration = UIButton.Configuration.filled()
         configuration.title = "댓글 작성"
-        configuration.image = AppIcon.squareAndPencil.image
+        configuration.image = UIImage(systemName: "square.and.pencil")
         configuration.imagePlacement = .leading
-        configuration.imagePadding = 8
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 20, bottom: 14, trailing: 20)
+        configuration.imagePadding = 6
         configuration.baseBackgroundColor = AppColor.accentPrimary
         configuration.baseForegroundColor = .white
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 18, bottom: 10, trailing: 18)
 
         let button = UIButton(configuration: configuration)
         button.layer.cornerRadius = 12
@@ -166,7 +173,7 @@ final class CommentListRootView: BaseRootView {
         summaryContainerView.snp.makeConstraints { make in
             make.top.equalTo(navigationContainerView.snp.bottom).offset(18)
             make.horizontalEdges.equalToSuperview().inset(24)
-            make.height.equalTo(28)
+            make.height.equalTo(26)
         }
 
         commentCountLabel.snp.makeConstraints { make in
@@ -180,7 +187,7 @@ final class CommentListRootView: BaseRootView {
 
         sortButton.snp.makeConstraints { make in
             make.trailing.centerY.equalToSuperview()
-            make.height.equalTo(28)
+            make.height.equalTo(26)
         }
 
         bottomButtonContainerView.snp.makeConstraints { make in
@@ -188,10 +195,10 @@ final class CommentListRootView: BaseRootView {
         }
 
         writeCommentButton.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(10)
+            make.top.equalToSuperview().offset(8)
             make.horizontalEdges.equalToSuperview().inset(24)
-            make.bottom.equalTo(safeAreaLayoutGuide).inset(10)
-            make.height.equalTo(56)
+            make.bottom.equalTo(safeAreaLayoutGuide).inset(8)
+            make.height.equalTo(48)
         }
 
         commentTableView.snp.makeConstraints { make in
@@ -212,6 +219,7 @@ final class CommentListRootView: BaseRootView {
 
     override func configureView() {
         backgroundColor = AppColor.bgPrimary
+        configureSortMenu()
     }
 
     func updateNavigationTitle(_ title: String) {
@@ -223,6 +231,26 @@ final class CommentListRootView: BaseRootView {
     }
 
     func updateSortButtonTitle(_ title: String) {
-        sortButton.configuration?.title = title
+        var configuration = sortButton.configuration
+        configuration?.attributedTitle = AttributedString(
+            title,
+            attributes: AttributeContainer([
+                .font: AppFont.caption.font
+            ])
+        )
+        sortButton.configuration = configuration
+    }
+
+    func configureSortMenu() {
+        let latestAction = UIAction(title: CommentSortOption.latest.title) { [weak self] _ in
+            self?.onSelectSortOption?(.latest)
+        }
+
+        let oldestAction = UIAction(title: CommentSortOption.oldest.title) { [weak self] _ in
+            self?.onSelectSortOption?(.oldest)
+        }
+
+        sortButton.menu = UIMenu(children: [latestAction, oldestAction])
+        sortButton.showsMenuAsPrimaryAction = true
     }
 }

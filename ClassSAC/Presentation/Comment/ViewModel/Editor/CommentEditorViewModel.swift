@@ -15,6 +15,7 @@ final class CommentEditorViewModel {
         let viewDidLoad: Observable<Void>
         let contentTextDidChange: Observable<String>
         let didTapConfirmButton: Observable<Void>
+        let didTapBackButton: Observable<Void>
     }
 
     struct Output {
@@ -24,8 +25,8 @@ final class CommentEditorViewModel {
     }
 
     private enum Constant {
-        static let minimumCount = 2
-        static let maximumCount = 300
+        static let minimumContentCount = 2
+        static let maximumContentCount = 200
     }
 
     private let context: CommentEditorContext
@@ -45,27 +46,37 @@ final class CommentEditorViewModel {
     }
 
     func transform(input: Input) -> Output {
-        let contentRelay = BehaviorRelay<String>(value: context.mode.initialContent)
+        let contentTextRelay = BehaviorRelay<String>(value: context.mode.initialContentText)
         let isLoadingRelay = BehaviorRelay<Bool>(value: false)
 
         let routeRelay = PublishRelay<CommentEditorRoute>()
         let showErrorMessageRelay = PublishRelay<String>()
 
+        bindInitialContent(
+            input: input,
+            contentTextRelay: contentTextRelay
+        )
+
         bindContentInput(
             input: input,
-            contentRelay: contentRelay
+            contentTextRelay: contentTextRelay
         )
 
         bindSubmit(
             input: input,
-            contentRelay: contentRelay,
+            contentTextRelay: contentTextRelay,
             isLoadingRelay: isLoadingRelay,
             routeRelay: routeRelay,
             showErrorMessageRelay: showErrorMessageRelay
         )
 
+        bindClose(
+            input: input,
+            routeRelay: routeRelay
+        )
+
         let state = makeStateDriver(
-            contentRelay: contentRelay,
+            contentTextRelay: contentTextRelay,
             isLoadingRelay: isLoadingRelay
         )
 
@@ -79,52 +90,50 @@ final class CommentEditorViewModel {
 
 private extension CommentEditorViewModel {
 
-    func mapCommentError(_ error: Error) -> CommentError {
-        (error as? CommentError) ?? .unknown
-    }
-
-    func emitErrorMessage(
-        from error: Error,
-        to relay: PublishRelay<String>
+    func bindInitialContent(
+        input: Input,
+        contentTextRelay: BehaviorRelay<String>
     ) {
-        relay.accept(mapCommentError(error).userMessage)
+        input.viewDidLoad
+            .map { [context] in
+                context.mode.initialContentText
+            }
+            .bind(to: contentTextRelay)
+            .disposed(by: disposeBag)
     }
 
     func bindContentInput(
         input: Input,
-        contentRelay: BehaviorRelay<String>
+        contentTextRelay: BehaviorRelay<String>
     ) {
-        input.viewDidLoad
-            .map { [context] in context.mode.initialContent }
-            .bind(to: contentRelay)
-            .disposed(by: disposeBag)
-
         input.contentTextDidChange
-            .map { String($0.prefix(Constant.maximumCount)) }
-            .bind(to: contentRelay)
+            .map { text in
+                String(text.prefix(Constant.maximumContentCount))
+            }
+            .bind(to: contentTextRelay)
             .disposed(by: disposeBag)
     }
 
     func bindSubmit(
         input: Input,
-        contentRelay: BehaviorRelay<String>,
+        contentTextRelay: BehaviorRelay<String>,
         isLoadingRelay: BehaviorRelay<Bool>,
         routeRelay: PublishRelay<CommentEditorRoute>,
         showErrorMessageRelay: PublishRelay<String>
     ) {
         input.didTapConfirmButton
-            .withLatestFrom(contentRelay.asObservable())
+            .withLatestFrom(contentTextRelay.asObservable())
             .flatMapLatest { [weak self] contentText -> Observable<Comment> in
                 guard let self else { return .empty() }
 
-                let trimmedContent = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedContentText = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-                guard !trimmedContent.isEmpty else {
+                guard !trimmedContentText.isEmpty else {
                     showErrorMessageRelay.accept(CommentError.emptyContent.userMessage)
                     return .empty()
                 }
 
-                guard trimmedContent.count >= Constant.minimumCount else {
+                guard trimmedContentText.count >= Constant.minimumContentCount else {
                     showErrorMessageRelay.accept(CommentError.tooShortContent.userMessage)
                     return .empty()
                 }
@@ -135,13 +144,12 @@ private extension CommentEditorViewModel {
                 case .create(let courseID):
                     return self.createCommentUseCase.execute(
                         courseID: courseID,
-                        content: trimmedContent
+                        content: trimmedContentText
                     )
                     .asObservable()
                     .do(onError: { [weak self] error in
                         isLoadingRelay.accept(false)
-                        guard let self else { return }
-                        self.emitErrorMessage(from: error, to: showErrorMessageRelay)
+                        self?.emitErrorMessage(from: error, relay: showErrorMessageRelay)
                     })
                     .catch { _ in .empty() }
 
@@ -149,13 +157,12 @@ private extension CommentEditorViewModel {
                     return self.updateCommentUseCase.execute(
                         courseID: comment.courseID,
                         commentID: comment.id,
-                        content: trimmedContent
+                        content: trimmedContentText
                     )
                     .asObservable()
                     .do(onError: { [weak self] error in
                         isLoadingRelay.accept(false)
-                        guard let self else { return }
-                        self.emitErrorMessage(from: error, to: showErrorMessageRelay)
+                        self?.emitErrorMessage(from: error, relay: showErrorMessageRelay)
                     })
                     .catch { _ in .empty() }
                 }
@@ -168,29 +175,47 @@ private extension CommentEditorViewModel {
             .disposed(by: disposeBag)
     }
 
+    func bindClose(
+        input: Input,
+        routeRelay: PublishRelay<CommentEditorRoute>
+    ) {
+        input.didTapBackButton
+            .map { CommentEditorRoute.close }
+            .bind(to: routeRelay)
+            .disposed(by: disposeBag)
+    }
+
     func makeStateDriver(
-        contentRelay: BehaviorRelay<String>,
+        contentTextRelay: BehaviorRelay<String>,
         isLoadingRelay: BehaviorRelay<Bool>
     ) -> Driver<CommentEditorViewState> {
         Observable
             .combineLatest(
-                contentRelay.asObservable(),
+                contentTextRelay.asObservable(),
                 isLoadingRelay.asObservable()
             )
             .map { [context] contentText, isLoading in
-                let trimmedContent = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedContentText = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 return CommentEditorViewState(
                     navigationTitle: context.mode.navigationTitle,
-                    confirmButtonTitle: context.mode.confirmButtonTitle,
-                    courseTitle: context.courseTitle,
                     categoryTitle: context.categoryTitle,
+                    courseTitle: context.courseTitle,
                     contentText: contentText,
-                    currentCountText: "\(contentText.count)/\(Constant.maximumCount)",
-                    isConfirmButtonEnabled: trimmedContent.count >= Constant.minimumCount && !isLoading,
+                    countText: "\(contentText.count)/\(Constant.maximumContentCount)",
+                    confirmButtonTitle: context.mode.confirmButtonTitle,
+                    isConfirmButtonEnabled: trimmedContentText.count >= Constant.minimumContentCount && !isLoading,
                     isLoading: isLoading
                 )
             }
             .asDriver(onErrorDriveWith: .empty())
+    }
+
+    func emitErrorMessage(
+        from error: Error,
+        relay: PublishRelay<String>
+    ) {
+        let commentError = (error as? CommentError) ?? .unknown
+        relay.accept(commentError.userMessage)
     }
 }
