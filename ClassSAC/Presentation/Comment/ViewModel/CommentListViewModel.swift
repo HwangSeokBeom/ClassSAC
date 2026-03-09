@@ -84,10 +84,8 @@ final class CommentListViewModel {
             showErrorMessageRelay: showErrorMessageRelay
         )
 
-        let state = makeStateDriver()
-
         return Output(
-            state: state,
+            state: makeStateDriver(),
             route: routeRelay.asSignal(),
             showDeleteAlert: showDeleteAlertRelay.asSignal(),
             showErrorMessage: showErrorMessageRelay.asSignal()
@@ -96,6 +94,17 @@ final class CommentListViewModel {
 }
 
 private extension CommentListViewModel {
+
+    func mapCommentError(_ error: Error) -> CommentError {
+        (error as? CommentError) ?? .unknown
+    }
+
+    func emitErrorMessage(
+        from error: Error,
+        to relay: PublishRelay<String>
+    ) {
+        relay.accept(mapCommentError(error).userMessage)
+    }
 
     func bindSort(input: Input) {
         input.didTapLatestSortButton
@@ -131,7 +140,8 @@ private extension CommentListViewModel {
                     },
                     onError: { [weak self] error in
                         self?.isLoadingRelay.accept(false)
-                        showErrorMessageRelay.accept(error.localizedDescription)
+                        guard let self else { return }
+                        self.emitErrorMessage(from: error, to: showErrorMessageRelay)
                     }
                 )
                 .catchAndReturn([])
@@ -170,7 +180,7 @@ private extension CommentListViewModel {
             }
             .subscribe(with: self) { owner, comment in
                 guard let comment else {
-                    showErrorMessageRelay.accept("수정할 댓글을 찾을 수 없습니다.")
+                    showErrorMessageRelay.accept(CommentError.commentNotFound.userMessage)
                     return
                 }
 
@@ -215,8 +225,9 @@ private extension CommentListViewModel {
                     commentID: commentID
                 )
                 .asObservable()
-                .do(onError: { error in
-                    showErrorMessageRelay.accept(error.localizedDescription)
+                .do(onError: { [weak self] error in
+                    guard let self else { return }
+                    self.emitErrorMessage(from: error, to: showErrorMessageRelay)
                 })
                 .catchAndReturn(())
             }
@@ -236,7 +247,8 @@ private extension CommentListViewModel {
             )
             .map { [courseTitle] comments, sortOption, isLoading in
                 let sortedComments = comments.sorted(by: sortOption)
-                let cellViewModels = sortedComments.map { comment in
+
+                let commentCellViewModels = sortedComments.map { comment in
                     CommentCellViewModel(
                         commentID: comment.id,
                         writerUserID: comment.writer.userID,
@@ -253,8 +265,8 @@ private extension CommentListViewModel {
                     courseTitle: courseTitle,
                     selectedSortTitle: sortOption.title,
                     commentCountText: "댓글 \(comments.count)개",
-                    commentCellViewModels: cellViewModels,
-                    isEmptyViewHidden: !cellViewModels.isEmpty,
+                    commentCellViewModels: commentCellViewModels,
+                    isEmptyViewHidden: !commentCellViewModels.isEmpty,
                     isLoading: isLoading
                 )
             }

@@ -31,8 +31,7 @@ final class DefaultAuthRepository: AuthRepository {
                 completion(.success(responseDTO.toEntity()))
 
             case .failure(let error):
-                print("🔥 Join API Error:", error.debugMessage)
-                completion(.failure(self.mapAuthError(error)))
+                completion(.failure(AuthErrorMapper.map(error)))
             }
         }
     }
@@ -51,49 +50,8 @@ final class DefaultAuthRepository: AuthRepository {
                 completion(.success(responseDTO.toEntity()))
 
             case .failure(let error):
-                completion(.failure(self.mapAuthError(error)))
+                completion(.failure(AuthErrorMapper.map(error)))
             }
-        }
-    }
-}
-
-private extension DefaultAuthRepository {
-
-    func mapAuthError(_ error: ClassSACAPIError) -> AuthError {
-        switch error {
-        case .statusCode(let statusCode, _):
-            switch statusCode {
-            case 401:
-                return .invalidCredential
-            case 403:
-                return .unauthorized
-            case 409:
-                return .duplicateEmail
-            case 429:
-                return .network
-            case 500...599:
-                return .network
-            default:
-                return .unknown
-            }
-            
-        case .underlying(let underlyingError):
-            if let urlError = underlyingError as? URLError {
-                switch urlError.code {
-                case .notConnectedToInternet,
-                     .timedOut,
-                     .cannotFindHost,
-                     .cannotConnectToHost,
-                     .dnsLookupFailed:
-                    return .network
-                default:
-                    return .unknown
-                }
-            }
-            return .unknown
-
-        case .invalidURL, .decoding, .deallocated:
-            return .unknown
         }
     }
 }

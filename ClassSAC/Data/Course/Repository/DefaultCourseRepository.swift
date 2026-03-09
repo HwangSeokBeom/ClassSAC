@@ -22,9 +22,8 @@ final class DefaultCourseRepository: CourseRepository {
             .map { response in
                 response.data.map { $0.toEntity() }
             }
-            .catch { [weak self] error in
-                guard let self else { return .error(CourseError.unknown) }
-                return .error(self.mapError(error))
+            .catch { error in
+                .error(CourseErrorMapper.map(error))
             }
     }
 
@@ -34,9 +33,8 @@ final class DefaultCourseRepository: CourseRepository {
             .map { responseDTO in
                 responseDTO.toEntity()
             }
-            .catch { [weak self] error in
-                guard let self else { return .error(CourseError.unknown) }
-                return .error(self.mapError(error))
+            .catch { error in
+                .error(CourseErrorMapper.map(error))
             }
     }
 
@@ -46,9 +44,8 @@ final class DefaultCourseRepository: CourseRepository {
             .map { responseDTO in
                 responseDTO.data.map { $0.toEntity() }
             }
-            .catch { [weak self] error in
-                guard let self else { return .error(CourseError.unknown) }
-                return .error(self.mapError(error))
+            .catch { error in
+                .error(CourseErrorMapper.map(error))
             }
     }
 
@@ -61,58 +58,8 @@ final class DefaultCourseRepository: CourseRepository {
                 courseID: courseID,
                 isLiked: isLiked
             )
-            .catch { [weak self] error in
-                guard let self else { return .error(CourseError.unknown) }
-                return .error(self.mapError(error))
+            .catch { error in
+                .error(CourseErrorMapper.map(error))
             }
-    }
-}
-
-extension DefaultCourseRepository {
-
-    func mapError(_ error: Error) -> CourseError {
-        guard let apiError = error as? ClassSACAPIError else {
-            return .unknown
-        }
-
-        switch apiError {
-        case .statusCode(let code, _):
-            switch code {
-            case 400:
-                return .badRequest
-            case 401:
-                return .unauthorized
-            case 403, 445:
-                return .forbidden
-            case 404, 410:
-                return .notFound
-            case 420:
-                return .invalidSesacKey
-            case 429:
-                return .tooManyRequests
-            case 500...599:
-                return .serverError
-            default:
-                return .unknown
-            }
-
-        case .underlying(let underlyingError):
-            if let urlError = underlyingError as? URLError {
-                switch urlError.code {
-                case .notConnectedToInternet,
-                     .timedOut,
-                     .cannotFindHost,
-                     .cannotConnectToHost,
-                     .dnsLookupFailed:
-                    return .network
-                default:
-                    return .unknown
-                }
-            }
-            return .unknown
-
-        case .invalidURL, .decoding, .deallocated:
-            return .unknown
-        }
     }
 }
