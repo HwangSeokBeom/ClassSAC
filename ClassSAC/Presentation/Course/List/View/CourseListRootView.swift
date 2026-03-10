@@ -127,7 +127,8 @@ final class CourseListRootView: BaseRootView {
 
         categoryCollectionView.snp.makeConstraints { make in
             make.top.equalTo(notificationButton.snp.bottom).offset(14)
-            make.leading.trailing.equalToSuperview()
+            make.leading.equalToSuperview().offset(8)
+            make.trailing.equalToSuperview()
             make.height.equalTo(38)
         }
 
