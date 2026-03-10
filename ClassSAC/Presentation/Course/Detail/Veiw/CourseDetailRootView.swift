@@ -82,6 +82,9 @@ final class CourseDetailRootView: BaseRootView {
         label.font = AppFont.body.font
         label.textColor = AppColor.textTertiary
         label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.85
         return label
     }()
 
@@ -90,6 +93,9 @@ final class CourseDetailRootView: BaseRootView {
         label.font = AppFont.title.font
         label.textColor = AppColor.textPrimary
         label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.82
         return label
     }()
 
@@ -104,7 +110,8 @@ final class CourseDetailRootView: BaseRootView {
     let priceStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
-        stackView.alignment = .center
+        stackView.alignment = .firstBaseline
+        stackView.distribution = .fill
         stackView.spacing = 8
         return stackView
     }()
@@ -172,7 +179,7 @@ final class CourseDetailRootView: BaseRootView {
 
     let moreCommentsButton: UIButton = {
         var configuration = UIButton.Configuration.plain()
-        
+
         configuration.title = "커뮤니티 더보기"
         configuration.image = AppIcon.chervronRight.image
         configuration.imagePlacement = .trailing
@@ -293,12 +300,16 @@ final class CourseDetailRootView: BaseRootView {
         }
 
         originalPriceLabel.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview()
+            make.top.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.trailing.lessThanOrEqualToSuperview()
         }
 
         priceStackView.snp.makeConstraints { make in
             make.top.equalTo(originalPriceLabel.snp.bottom).offset(4)
-            make.leading.trailing.bottom.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.trailing.lessThanOrEqualToSuperview()
+            make.bottom.equalToSuperview()
         }
 
         infoStackView.snp.makeConstraints { make in
@@ -396,6 +407,14 @@ final class CourseDetailRootView: BaseRootView {
             icon: UIImage(systemName: "person.2"),
             value: "미정"
         )
+
+        salePriceLabel.setContentHuggingPriority(.required, for: .horizontal)
+        salePriceLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        discountPercentLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        discountPercentLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+
+        originalPriceLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         originalPriceLabel.isHidden = true
         discountPercentLabel.isHidden = true
