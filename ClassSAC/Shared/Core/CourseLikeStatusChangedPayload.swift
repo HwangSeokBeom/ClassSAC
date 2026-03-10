@@ -9,5 +9,5 @@ import Foundation
 
 struct CourseLikeStatusChangedPayload {
     let courseID: String
-    let isLiked: Bool
+    let likeStatus: Bool
 }

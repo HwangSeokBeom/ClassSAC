@@ -1,8 +1,8 @@
 //
 //  UIView+Toast.swift
-//  CineWave
+//  ClassSAC
 //
-//  Created by Hwangseokbeom on 2/6/26.
+//  Created by Hwangseokbeom on 3/10/26.
 //
 
 import UIKit
@@ -10,46 +10,42 @@ import SnapKit
 
 extension UIView {
 
-    func showToast(_ message: String) {
-        let label = PaddingLabel()
-        label.text = message
-        label.textColor = .white
-        label.backgroundColor = UIColor(white: 0.12, alpha: 0.95)
-        label.numberOfLines = 0
-        label.textAlignment = .center
-        label.layer.cornerRadius = 10
-        label.clipsToBounds = true
-        label.alpha = 0
+    func showToast(
+        _ message: String,
+        duration: TimeInterval = 1.3
+    ) {
+        removeExistingToastView()
 
-        addSubview(label)
+        let toastView = ToastView(message: message)
 
-        label.snp.makeConstraints { make in
+        [
+            toastView
+        ].forEach { addSubview($0) }
+
+        toastView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.bottom.equalTo(safeAreaLayoutGuide).inset(24)
             make.leading.greaterThanOrEqualToSuperview().inset(16)
             make.trailing.lessThanOrEqualToSuperview().inset(16)
+            make.width.lessThanOrEqualToSuperview().multipliedBy(0.88)
         }
 
-        UIView.animate(withDuration: 0.2) { label.alpha = 1 }
-        UIView.animate(withDuration: 0.2, delay: 1.3, options: []) { label.alpha = 0 } completion: { _ in
-            label.removeFromSuperview()
+        layoutIfNeeded()
+
+        UIView.animate(withDuration: 0.2) {
+            toastView.alpha = 1
+        }
+
+        UIView.animate(withDuration: 0.2, delay: duration, options: []) {
+            toastView.alpha = 0
+        } completion: { _ in
+            toastView.removeFromSuperview()
         }
     }
-}
 
-final class PaddingLabel: UILabel {
-
-    var textInsets = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
-
-    override func drawText(in rect: CGRect) {
-        super.drawText(in: rect.inset(by: textInsets))
-    }
-
-    override var intrinsicContentSize: CGSize {
-        let size = super.intrinsicContentSize
-        return CGSize(
-            width: size.width + textInsets.left + textInsets.right,
-            height: size.height + textInsets.top + textInsets.bottom
-        )
+    private func removeExistingToastView() {
+        subviews
+            .compactMap { $0 as? ToastView }
+            .forEach { $0.removeFromSuperview() }
     }
 }

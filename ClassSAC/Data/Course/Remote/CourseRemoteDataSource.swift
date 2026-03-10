@@ -70,17 +70,18 @@ final class CourseRemoteDataSource {
         }
     }
 
-    func toggleCourseLike(
+    func updateCourseLikeStatus(
         courseID: String,
-        isLiked: Bool
-    ) -> Single<Void> {
+        likeStatus: Bool
+    ) -> Single<LikeResponseDTO> {
         Single.create { [httpClient] single in
-            httpClient.requestVoid(
-                ClassSACAPI.likeCourse(courseId: courseID, likeStatus: isLiked)
+            httpClient.request(
+                ClassSACAPI.likeCourse(courseId: courseID, likeStatus: likeStatus),
+                as: LikeResponseDTO.self
             ) { result in
                 switch result {
-                case .success:
-                    single(.success(()))
+                case .success(let responseDTO):
+                    single(.success(responseDTO))
                 case .failure(let error):
                     single(.failure(error))
                 }

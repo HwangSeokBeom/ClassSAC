@@ -91,6 +91,7 @@ final class CourseListViewController: UIViewController {
         let output = viewModel.transform(input: input)
 
         bindState(output)
+        bindToast(output)
         bindCategoryCollectionView(output)
         bindCourseCollectionView(output)
         bindNavigation(output)
@@ -123,6 +124,14 @@ private extension CourseListViewController {
                 owner.currentCourseCellViewModels = state.courses
                 owner.rootView.courseCountLabel.text = state.courseCountText
                 owner.rootView.updateSortButtonTitle(sortType: state.selectedSortType)
+            }
+            .disposed(by: disposeBag)
+    }
+    
+    func bindToast(_ output: CourseListViewModel.Output) {
+        output.showToastMessage
+            .emit(with: self) { owner, message in
+                owner.view.showToast(message)
             }
             .disposed(by: disposeBag)
     }

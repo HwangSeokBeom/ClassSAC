@@ -10,7 +10,7 @@ import RxSwift
 import RxCocoa
 
 protocol CourseLikeStatusBroadcasting {
-    func post(courseID: String, isLiked: Bool)
+    func post(courseID: String, likeStatus: Bool)
     func observe() -> Observable<CourseLikeStatusChangedPayload>
 }
 
@@ -22,10 +22,10 @@ final class CourseLikeStatusNotifier: CourseLikeStatusBroadcasting {
         self.notificationCenter = notificationCenter
     }
 
-    func post(courseID: String, isLiked: Bool) {
+    func post(courseID: String, likeStatus: Bool) {
         let payload = CourseLikeStatusChangedPayload(
             courseID: courseID,
-            isLiked: isLiked
+            likeStatus: likeStatus
         )
 
         notificationCenter.post(

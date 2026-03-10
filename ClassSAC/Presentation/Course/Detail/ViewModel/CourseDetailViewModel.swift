@@ -21,6 +21,7 @@ final class CourseDetailViewModel {
         let state: Driver<CourseDetailViewState>
         let route: Signal<CourseDetailRoute>
         let showError: Signal<CourseError>
+        let showToastMessage: Signal<String>
     }
 
     private enum Message {
@@ -61,6 +62,7 @@ final class CourseDetailViewModel {
     private let commentsRelay = BehaviorRelay<[Comment]>(value: [])
     private let isLoadingRelay = BehaviorRelay<Bool>(value: false)
     private let errorRelay = PublishRelay<CourseError>()
+    private let toastMessageRelay = PublishRelay<String>()
 
     init(
         courseID: String,
@@ -85,7 +87,8 @@ final class CourseDetailViewModel {
         return Output(
             state: makeStateDriver(),
             route: makeRouteSignal(input: input),
-            showError: errorRelay.asSignal()
+            showError: errorRelay.asSignal(),
+            showToastMessage: toastMessageRelay.asSignal()
         )
     }
 }
@@ -136,25 +139,35 @@ private extension CourseDetailViewModel {
     func bindLikeAction(input: Input) {
         input.didTapLikeButton
             .withLatestFrom(courseDetailRelay.compactMap { $0 })
-            .flatMapLatest { [weak self] courseDetail -> Observable<Void> in
+            .flatMapLatest { [weak self] courseDetail -> Observable<CourseLikeResult> in
                 guard let self else { return .empty() }
 
-                let toggledLikeState = !courseDetail.isLiked
+                let targetLikeStatus = !courseDetail.isLiked
 
-                self.updateLikeStateLocally(isLiked: toggledLikeState)
+                self.updateLikeStateLocally(likeStatus: targetLikeStatus)
 
                 return self.toggleCourseLikeUseCase.execute(
                     courseID: courseDetail.id,
-                    isLiked: toggledLikeState
+                    likeStatus: targetLikeStatus
                 )
                 .asObservable()
                 .do(onError: { [weak self] error in
-                    self?.updateLikeStateLocally(isLiked: courseDetail.isLiked)
+                    self?.updateLikeStateLocally(likeStatus: courseDetail.isLiked)
                     self?.emitCourseError(from: error)
                 })
-                .catchAndReturn(())
+                .catch { _ in .empty() }
             }
-            .subscribe()
+            .subscribe(with: self) { owner, result in
+                owner.updateLikeStateLocally(likeStatus: result.likeStatus)
+
+                guard let courseDetail = owner.courseDetailRelay.value else { return }
+
+                let toastMessage = result.likeStatus
+                    ? "\(courseDetail.title) 클래스를 찜했습니다."
+                    : "\(courseDetail.title) 클래스 찜을 취소했습니다."
+
+                owner.toastMessageRelay.accept(toastMessage)
+            }
             .disposed(by: disposeBag)
     }
 
@@ -165,7 +178,7 @@ private extension CourseDetailViewModel {
                 guard currentCourseDetail.id == payload.courseID else { return }
 
                 owner.courseDetailRelay.accept(
-                    currentCourseDetail.updatingLikeState(payload.isLiked)
+                    currentCourseDetail.updatingLikeState(payload.likeStatus)
                 )
             }
             .disposed(by: disposeBag)
@@ -353,9 +366,9 @@ private extension CourseDetailViewModel {
         errorRelay.accept(courseError)
     }
 
-    func updateLikeStateLocally(isLiked: Bool) {
+    func updateLikeStateLocally(likeStatus: Bool) {
         guard let currentCourseDetail = courseDetailRelay.value else { return }
-        courseDetailRelay.accept(currentCourseDetail.updatingLikeState(isLiked))
+        courseDetailRelay.accept(currentCourseDetail.updatingLikeState(likeStatus))
     }
 
     static var emptyState: CourseDetailViewState {

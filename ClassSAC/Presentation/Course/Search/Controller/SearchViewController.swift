@@ -75,6 +75,7 @@ private extension SearchViewController {
         bindSearchBar()
         enableKeyboardDismissGesture()
         bindState(output)
+        bindToast(output)
         bindCourseCollectionView(output)
         bindNavigation(output)
         bindError(output)
@@ -125,6 +126,14 @@ private extension SearchViewController {
                 cell.onTapLikeButton = { [weak self] in
                     self?.likeButtonTapRelay.accept(cellViewModel.courseID)
                 }
+            }
+            .disposed(by: disposeBag)
+    }
+    
+    func bindToast(_ output: SearchViewModel.Output) {
+        output.showToastMessage
+            .emit(with: self) { owner, message in
+                owner.view.showToast(message)
             }
             .disposed(by: disposeBag)
     }

@@ -49,15 +49,18 @@ final class DefaultCourseRepository: CourseRepository {
             }
     }
 
-    func toggleCourseLike(
+    func updateCourseLikeStatus(
         courseID: String,
-        isLiked: Bool
-    ) -> Single<Void> {
+        likeStatus: Bool
+    ) -> Single<CourseLikeResult> {
         remoteDataSource
-            .toggleCourseLike(
-                courseID: courseID,
-                isLiked: isLiked
-            )
+            .updateCourseLikeStatus(courseID: courseID, likeStatus: likeStatus)
+            .map { responseDTO in
+                CourseLikeResult(
+                    courseID: courseID,
+                    likeStatus: responseDTO.likeStatus
+                )
+            }
             .catch { error in
                 .error(CourseErrorMapper.map(error))
             }

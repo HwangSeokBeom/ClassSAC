@@ -8,6 +8,6 @@
 import Foundation
 import RxSwift
 
-protocol ToggleCourseLikeUseCase: AnyObject {
-    func execute(courseID: String, isLiked: Bool) -> Single<Void>
+protocol ToggleCourseLikeUseCase {
+    func execute(courseID: String, likeStatus: Bool) -> Single<CourseLikeResult>
 }

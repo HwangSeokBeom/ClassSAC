@@ -62,6 +62,7 @@ private extension CourseDetailViewController {
 
         bindImageCollectionView(output: output)
         bindState(output: output)
+        bindToast(output)
         bindRoute(output: output)
         bindError(output: output)
         bindAction()
@@ -122,6 +123,14 @@ private extension CourseDetailViewController {
         output.route
             .emit(with: self) { owner, route in
                 owner.courseFlowCoordinator?.handle(route: route, from: owner)
+            }
+            .disposed(by: disposeBag)
+    }
+    
+    func bindToast(_ output: CourseDetailViewModel.Output) {
+        output.showToastMessage
+            .emit(with: self) { owner, message in
+                owner.view.showToast(message)
             }
             .disposed(by: disposeBag)
     }

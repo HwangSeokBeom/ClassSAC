@@ -21,16 +21,17 @@ final class DefaultToggleCourseLikeUseCase: ToggleCourseLikeUseCase {
         self.courseLikeStatusNotifier = courseLikeStatusNotifier
     }
 
-    func execute(courseID: String, isLiked: Bool) -> Single<Void> {
-        courseRepository.toggleCourseLike(
-            courseID: courseID,
-            isLiked: isLiked
-        )
-        .do(onSuccess: { [weak self] _ in
-            self?.courseLikeStatusNotifier.post(
+    func execute(courseID: String, likeStatus: Bool) -> Single<CourseLikeResult> {
+        courseRepository
+            .updateCourseLikeStatus(
                 courseID: courseID,
-                isLiked: isLiked
+                likeStatus: likeStatus
             )
-        })
+            .do(onSuccess: { [weak self] result in
+                self?.courseLikeStatusNotifier.post(
+                    courseID: result.courseID,
+                    likeStatus: result.likeStatus
+                )
+            })
     }
 }
