@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  CourseListRoute.swift
 //  ClassSAC
 //
 //  Created by Hwangseokbeom on 3/8/26.
