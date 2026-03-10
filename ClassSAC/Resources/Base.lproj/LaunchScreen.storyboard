@@ -25,14 +25,23 @@
                                 <color key="textColor" name="accentPrimary"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="황석범" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Fhk-sv-Ufk">
+                                <rect key="frame" x="50" y="612.66666666666663" width="293" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" name="bgPrimary"/>
                         <constraints>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="Fhk-sv-Ufk" secondAttribute="trailing" constant="50" id="007-Lg-UD9"/>
                             <constraint firstItem="vgH-7T-uc4" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="120" id="355-fU-553"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="vgH-7T-uc4" secondAttribute="bottom" constant="300" id="5IO-4j-oyh"/>
                             <constraint firstItem="CAc-4A-888" firstAttribute="top" secondItem="vgH-7T-uc4" secondAttribute="bottom" constant="50" id="5Pk-cH-K9M"/>
+                            <constraint firstItem="Fhk-sv-Ufk" firstAttribute="top" secondItem="CAc-4A-888" secondAttribute="bottom" constant="50" id="93g-MJ-yRh"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="CAc-4A-888" secondAttribute="trailing" constant="50" id="HNC-io-oIs"/>
+                            <constraint firstItem="Fhk-sv-Ufk" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="50" id="KnU-dc-kFf"/>
                             <constraint firstItem="vgH-7T-uc4" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="75" id="TqH-W5-GG0"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="vgH-7T-uc4" secondAttribute="trailing" constant="75" id="rHH-yC-RZd"/>
                             <constraint firstItem="CAc-4A-888" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="50" id="udP-KO-Uws"/>
