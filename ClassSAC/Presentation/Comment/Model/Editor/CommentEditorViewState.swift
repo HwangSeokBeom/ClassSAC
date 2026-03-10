@@ -11,7 +11,6 @@ struct CommentEditorViewState {
     let navigationTitle: String
     let categoryTitle: String
     let courseTitle: String
-    let contentText: String
     let countText: String
     let confirmButtonTitle: String
     let isConfirmButtonEnabled: Bool

@@ -19,6 +19,7 @@ final class CommentEditorViewModel {
     }
 
     struct Output {
+        let initialContentText: Signal<String>
         let state: Driver<CommentEditorViewState>
         let route: Signal<CommentEditorRoute>
         let showErrorMessage: Signal<String>
@@ -52,15 +53,18 @@ final class CommentEditorViewModel {
         let routeRelay = PublishRelay<CommentEditorRoute>()
         let showErrorMessageRelay = PublishRelay<String>()
 
-        bindInitialContent(
-            input: input,
-            contentTextRelay: contentTextRelay
-        )
+        let initialContentText = input.viewDidLoad
+            .map { [context] in
+                context.mode.initialContentText
+            }
+            .asSignal(onErrorJustReturn: "")
 
-        bindContentInput(
-            input: input,
-            contentTextRelay: contentTextRelay
-        )
+        input.contentTextDidChange
+            .map { text in
+                String(text.prefix(Constant.maximumContentCount))
+            }
+            .bind(to: contentTextRelay)
+            .disposed(by: disposeBag)
 
         bindSubmit(
             input: input,
@@ -81,6 +85,7 @@ final class CommentEditorViewModel {
         )
 
         return Output(
+            initialContentText: initialContentText,
             state: state,
             route: routeRelay.asSignal(),
             showErrorMessage: showErrorMessageRelay.asSignal()
@@ -89,30 +94,6 @@ final class CommentEditorViewModel {
 }
 
 private extension CommentEditorViewModel {
-
-    func bindInitialContent(
-        input: Input,
-        contentTextRelay: BehaviorRelay<String>
-    ) {
-        input.viewDidLoad
-            .map { [context] in
-                context.mode.initialContentText
-            }
-            .bind(to: contentTextRelay)
-            .disposed(by: disposeBag)
-    }
-
-    func bindContentInput(
-        input: Input,
-        contentTextRelay: BehaviorRelay<String>
-    ) {
-        input.contentTextDidChange
-            .map { text in
-                String(text.prefix(Constant.maximumContentCount))
-            }
-            .bind(to: contentTextRelay)
-            .disposed(by: disposeBag)
-    }
 
     func bindSubmit(
         input: Input,
@@ -201,7 +182,6 @@ private extension CommentEditorViewModel {
                     navigationTitle: context.mode.navigationTitle,
                     categoryTitle: context.categoryTitle,
                     courseTitle: context.courseTitle,
-                    contentText: contentText,
                     countText: "\(contentText.count)/\(Constant.maximumContentCount)",
                     confirmButtonTitle: context.mode.confirmButtonTitle,
                     isConfirmButtonEnabled: trimmedContentText.count >= Constant.minimumContentCount && !isLoading,

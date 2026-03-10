@@ -227,6 +227,9 @@ private extension CommentListViewModel {
     ) {
         input.didConfirmDeleteAlert
             .withLatestFrom(deleteTargetCommentIDRelay.compactMap { $0 })
+            .do(onNext: { [weak self] _ in
+                self?.isLoadingRelay.accept(true)
+            })
             .flatMapLatest { [weak self] commentID -> Observable<Void> in
                 guard let self else { return .empty() }
 
@@ -235,10 +238,16 @@ private extension CommentListViewModel {
                     commentID: commentID
                 )
                 .asObservable()
-                .do(onError: { [weak self] error in
-                    guard let self else { return }
-                    self.emitErrorMessage(from: error, to: showErrorMessageRelay)
-                })
+                .do(
+                    onNext: { [weak self] _ in
+                        self?.isLoadingRelay.accept(false)
+                    },
+                    onError: { [weak self] error in
+                        self?.isLoadingRelay.accept(false)
+                        guard let self else { return }
+                        self.emitErrorMessage(from: error, to: showErrorMessageRelay)
+                    }
+                )
                 .catchAndReturn(())
             }
             .subscribe(with: self) { owner, _ in

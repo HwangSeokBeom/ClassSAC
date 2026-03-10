@@ -15,6 +15,7 @@ final class CommentEditorViewController: UIViewController {
     private let viewModel: CommentEditorViewModel
 
     private let disposeBag = DisposeBag()
+   // private let viewDidLoadRelay = PublishRelay<Void>()
 
     init(viewModel: CommentEditorViewModel) {
         self.viewModel = viewModel
@@ -32,25 +33,44 @@ final class CommentEditorViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         bind()
+        //viewDidLoadRelay.accept(())
     }
 }
 
 private extension CommentEditorViewController {
 
+    var contentTextDidChange: Observable<String> {
+        NotificationCenter.default.rx
+            .notification(UITextView.textDidChangeNotification, object: rootView.contentTextView)
+            .compactMap { [weak self] _ in
+                self?.rootView.contentTextView.text
+            }
+    }
+    
     func bind() {
         let input = CommentEditorViewModel.Input(
             viewDidLoad: Observable.just(()),
-            contentTextDidChange: rootView.contentTextView.rx.text.orEmpty.asObservable(),
+            contentTextDidChange: contentTextDidChange,
             didTapConfirmButton: rootView.confirmButton.rx.tap.asObservable(),
             didTapBackButton: rootView.closeButton.rx.tap.asObservable()
         )
 
         let output = viewModel.transform(input: input)
 
+        bindInitialContent(output: output)
         bindState(output: output)
         bindRoute(output: output)
         bindError(output: output)
         bindPlaceholder()
+    }
+
+    func bindInitialContent(output: CommentEditorViewModel.Output) {
+        output.initialContentText
+            .emit(with: self) { owner, text in
+                owner.rootView.contentTextView.text = text
+                owner.rootView.updatePlaceholderVisibility(isHidden: !text.isEmpty)
+            }
+            .disposed(by: disposeBag)
     }
 
     func bindState(output: CommentEditorViewModel.Output) {
@@ -81,7 +101,11 @@ private extension CommentEditorViewController {
     }
 
     func bindPlaceholder() {
-        rootView.contentTextView.rx.text.orEmpty
+        NotificationCenter.default.rx
+            .notification(UITextView.textDidChangeNotification, object: rootView.contentTextView)
+            .compactMap { [weak self] _ in
+                self?.rootView.contentTextView.text
+            }
             .map { !$0.isEmpty }
             .distinctUntilChanged()
             .bind(with: self) { owner, isHidden in
@@ -94,11 +118,6 @@ private extension CommentEditorViewController {
         rootView.navigationTitleLabel.text = state.navigationTitle
         rootView.categoryTagLabel.text = state.categoryTitle
         rootView.courseTitleLabel.text = state.courseTitle
-
-        if rootView.contentTextView.text != state.contentText {
-            rootView.contentTextView.text = state.contentText
-        }
-
         rootView.countLabel.text = state.countText
         rootView.updateConfirmButtonTitle(state.confirmButtonTitle)
 
@@ -110,7 +129,5 @@ private extension CommentEditorViewController {
         } else {
             rootView.loadingIndicatorView.stopAnimating()
         }
-
-        rootView.updatePlaceholderVisibility(isHidden: !state.contentText.isEmpty)
     }
 }
