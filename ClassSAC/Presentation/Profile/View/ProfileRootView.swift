@@ -36,7 +36,7 @@ final class ProfileRootView: BaseRootView {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 44
-        imageView.image = AppIcon.person3.image
+        imageView.image = AppIcon.person.image
         imageView.tintColor = AppColor.textTertiary
         return imageView
     }()
@@ -183,6 +183,6 @@ final class ProfileRootView: BaseRootView {
     }
 
     func updateProfileImage(_ image: UIImage?) {
-        profileImageView.image = image ?? AppIcon.person3.image
+        profileImageView.image = image ?? AppIcon.person.image
     }
 }

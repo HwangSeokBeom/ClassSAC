@@ -138,7 +138,7 @@ private extension ProfileViewController {
         thumbnailProvider.cancelLoad(on: rootView.profileImageView)
 
         guard let path, !path.isEmpty else {
-            rootView.updateProfileImage(AppIcon.person3.image)
+            rootView.updateProfileImage(AppIcon.person.image)
             return
         }
 
