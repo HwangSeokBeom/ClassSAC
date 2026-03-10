@@ -80,7 +80,7 @@ final class CommentTableViewCell: UITableViewCell {
 
     func configure(
         viewModel: CommentCellViewModel,
-        thumbnailProvider: CourseThumbnailProviding
+        thumbnailProvider: RemoteImageProviding
     ) {
         commentID = viewModel.commentID
         writerNameLabel.text = viewModel.writerNickname

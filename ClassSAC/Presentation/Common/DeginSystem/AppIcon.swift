@@ -33,6 +33,7 @@ enum AppIcon: String {
     case chervronRight = "chevron.right"
     case squareAndPencil = "square.and.pencil"
     case xmark = "xmark"
+    case person3 = "profile_placeholder"
 
     var image: UIImage? {
         UIImage(systemName: rawValue)

@@ -213,7 +213,7 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
 
     func configure(
         cellViewModel: CourseListCellViewModel,
-        thumbnailProvider: CourseThumbnailProviding
+        thumbnailProvider: RemoteImageProviding
     ) {
         titleLabel.text = cellViewModel.title
         descriptionLabel.text = cellViewModel.descriptionText

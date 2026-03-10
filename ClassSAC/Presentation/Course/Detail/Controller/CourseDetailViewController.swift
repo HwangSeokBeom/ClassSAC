@@ -14,14 +14,14 @@ final class CourseDetailViewController: UIViewController {
 
     private let rootView = CourseDetailRootView()
     private let viewModel: CourseDetailViewModel
-    private let thumbnailProvider: CourseThumbnailProviding
+    private let thumbnailProvider: RemoteImageProviding
     private weak var courseFlowCoordinator: CourseFlowCoordinating?
 
     private let disposeBag = DisposeBag()
 
     init(
         viewModel: CourseDetailViewModel,
-        thumbnailProvider: CourseThumbnailProviding,
+        thumbnailProvider: RemoteImageProviding,
         courseFlowCoordinator: CourseFlowCoordinating
     ) {
         self.viewModel = viewModel

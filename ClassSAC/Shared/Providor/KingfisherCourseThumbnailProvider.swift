@@ -8,7 +8,7 @@
 import UIKit
 import Kingfisher
 
-final class KingfisherCourseThumbnailProvider: CourseThumbnailProviding {
+final class KingfisherCourseThumbnailProvider: RemoteImageProviding {
 
     private let accessTokenStore: AccessTokenStoring
 

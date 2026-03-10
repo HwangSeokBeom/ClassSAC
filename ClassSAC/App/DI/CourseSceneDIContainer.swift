@@ -31,6 +31,10 @@ final class CourseSceneDIContainer {
         httpClient: httpClient
     )
 
+    private lazy var profileRemoteDataSource = ProfileRemoteDataSource(
+        httpClient: httpClient
+    )
+
     private lazy var courseRepository: CourseRepository = DefaultCourseRepository(
         remoteDataSource: courseRemoteDataSource
     )
@@ -39,7 +43,16 @@ final class CourseSceneDIContainer {
         remoteDataSource: commentRemoteDataSource
     )
 
-    private lazy var thumbnailProvider: CourseThumbnailProviding = KingfisherCourseThumbnailProvider(
+    private lazy var profileRepository: ProfileRepository = DefaultProfileRepository(
+        profileRemoteDataSource: profileRemoteDataSource
+    )
+
+    private lazy var sessionRepository: SessionRepository = DefaultSessionRepository(
+        accessTokenStore: accessTokenStore,
+        currentUserStore: currentUserStore
+    )
+
+    private lazy var thumbnailProvider: RemoteImageProviding = KingfisherCourseThumbnailProvider(
         accessTokenStore: accessTokenStore
     )
 
@@ -78,6 +91,14 @@ final class CourseSceneDIContainer {
 
     private func makeDeleteCommentUseCase() -> DeleteCommentUseCase {
         DefaultDeleteCommentUseCase(commentRepository: commentRepository)
+    }
+
+    private func makeFetchMyProfileUseCase() -> FetchMyProfileUseCase {
+        DefaultFetchMyProfileUseCase(profileRepository: profileRepository)
+    }
+
+    private func makeLogoutUseCase() -> LogoutUseCase {
+        DefaultLogoutUseCase(sessionRepository: sessionRepository)
     }
 
     func makeCourseListViewController(
@@ -179,28 +200,20 @@ final class CourseSceneDIContainer {
 
     func makeProfileViewController(
         courseFlowCoordinator: CourseFlowCoordinating
-    ) -> UIViewController {
-        let profileViewController = UIViewController()
-        profileViewController.view.backgroundColor = AppColor.bgPrimary
-        profileViewController.title = "프로필"
-
-        let logoutButton = UIButton(type: .system)
-        logoutButton.setTitle("로그아웃", for: .normal)
-        logoutButton.addAction(
-            UIAction { _ in
-                courseFlowCoordinator.requestLogout()
-            },
-            for: .touchUpInside
+    ) -> ProfileViewController {
+        let profileViewModel = ProfileViewModel(
+            fetchMyProfileUseCase: makeFetchMyProfileUseCase(),
+            logoutUseCase: makeLogoutUseCase()
         )
 
-        profileViewController.view.addSubview(logoutButton)
-        logoutButton.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            logoutButton.centerXAnchor.constraint(equalTo: profileViewController.view.centerXAnchor),
-            logoutButton.centerYAnchor.constraint(equalTo: profileViewController.view.centerYAnchor)
-        ])
-
-        return profileViewController
+        return ProfileViewController(
+            viewModel: profileViewModel,
+            thumbnailProvider: thumbnailProvider
+        ) { route in
+            switch route {
+            case .login:
+                courseFlowCoordinator.requestLogout()
+            }
+        }
     }
 }

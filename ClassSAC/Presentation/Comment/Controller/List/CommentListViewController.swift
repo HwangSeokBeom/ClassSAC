@@ -13,7 +13,7 @@ final class CommentListViewController: UIViewController {
 
     private let rootView = CommentListRootView()
     private let viewModel: CommentListViewModel
-    private let thumbnailProvider: CourseThumbnailProviding
+    private let thumbnailProvider: RemoteImageProviding
     private weak var courseFlowCoordinator: CourseFlowCoordinating?
 
     private let disposeBag = DisposeBag()
@@ -25,7 +25,7 @@ final class CommentListViewController: UIViewController {
 
     init(
         viewModel: CommentListViewModel,
-        thumbnailProvider: CourseThumbnailProviding,
+        thumbnailProvider: RemoteImageProviding,
         courseFlowCoordinator: CourseFlowCoordinating
     ) {
         self.viewModel = viewModel

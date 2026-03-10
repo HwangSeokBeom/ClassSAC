@@ -37,7 +37,7 @@ final class CourseDetailImageCollectionViewCell: UICollectionViewCell {
 
     func configure(
         imagePath: String?,
-        thumbnailProvider: CourseThumbnailProviding
+        thumbnailProvider: RemoteImageProviding
     ) {
         thumbnailProvider.loadThumbnail(
             on: courseImageView,

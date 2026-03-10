@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol CourseThumbnailProviding {
+protocol RemoteImageProviding {
     func loadThumbnail(
         on imageView: UIImageView,
         path: String?

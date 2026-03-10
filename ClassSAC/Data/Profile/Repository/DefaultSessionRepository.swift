@@ -23,16 +23,9 @@ final class DefaultSessionRepository: SessionRepository {
 
     func clearSession() -> Completable {
         Completable.create { [weak self] completable in
-            guard let self else {
-                completable(.completed)
-                return Disposables.create()
-            }
-
-            self.accessTokenStore.clear()
-            self.currentUserStore.clearCurrentUserID()
-
+            self?.accessTokenStore.clear()
+            self?.currentUserStore.clearCurrentUserID()
             completable(.completed)
-
             return Disposables.create()
         }
     }

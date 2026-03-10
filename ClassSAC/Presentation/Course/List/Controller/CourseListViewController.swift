@@ -14,7 +14,7 @@ final class CourseListViewController: UIViewController {
 
     private let rootView = CourseListRootView()
     private let viewModel: CourseListViewModel
-    private let thumbnailProvider: CourseThumbnailProviding
+    private let thumbnailProvider: RemoteImageProviding
     private weak var courseFlowCoordinator: CourseFlowCoordinating?
 
     private let disposeBag = DisposeBag()
@@ -27,7 +27,7 @@ final class CourseListViewController: UIViewController {
 
     init(
         viewModel: CourseListViewModel,
-        thumbnailProvider: CourseThumbnailProviding,
+        thumbnailProvider: RemoteImageProviding,
         courseFlowCoordinator: CourseFlowCoordinating
     ) {
         self.viewModel = viewModel
