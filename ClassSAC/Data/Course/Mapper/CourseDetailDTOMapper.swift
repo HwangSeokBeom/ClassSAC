@@ -21,9 +21,7 @@ extension CourseDetailResponseDTO {
             date: date,
             capacity: capacity,
             imageURLs: imageURLs,
-            createdAt: createdAt.flatMap {
-                DateFormatterManager.iso8601.date(from: $0)
-            },
+            createdAt: DateParser.parseOptionalISO8601(createdAt),
             isLiked: isLiked,
             creator: creator.toEntity()
         )

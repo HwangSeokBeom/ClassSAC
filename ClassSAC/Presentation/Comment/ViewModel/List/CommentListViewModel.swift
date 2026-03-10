@@ -228,7 +228,7 @@ private extension CommentListViewModel {
             .do(onNext: { [weak self] _ in
                 self?.isLoadingRelay.accept(true)
             })
-            .flatMapLatest { [weak self] commentID -> Observable<Event<Void>> in
+            .flatMapLatest { [weak self] commentID -> Observable<Void> in
                 guard let self else { return .empty() }
 
                 return self.deleteCommentUseCase.execute(
@@ -236,26 +236,26 @@ private extension CommentListViewModel {
                     commentID: commentID
                 )
                 .asObservable()
-                .materialize()
-            }
-            .subscribe(with: self) { owner, event in
-                owner.isLoadingRelay.accept(false)
-
-                switch event {
-                case .next:
-                    NotificationCenter.default.post(name: .commentDidChange, object: nil)
-                    owner.deleteTargetCommentIDRelay.accept(nil)
-
-                case .error(let error):
-                    owner.emitErrorMessage(from: error, to: showErrorMessageRelay)
-
-                case .completed:
-                    break
+                .do(
+                    onNext: { [weak self] _ in
+                        self?.isLoadingRelay.accept(false)
+                    },
+                    onError: { [weak self] error in
+                        self?.isLoadingRelay.accept(false)
+                        guard let self else { return }
+                        self.emitErrorMessage(from: error, to: showErrorMessageRelay)
+                    }
+                )
+                .catch { _ in
+                    .empty()
                 }
+            }
+            .subscribe(with: self) { owner, _ in
+                NotificationCenter.default.post(name: .commentDidChange, object: nil)
+                owner.deleteTargetCommentIDRelay.accept(nil)
             }
             .disposed(by: disposeBag)
     }
-
     func makeStateDriver() -> Driver<CommentListViewState> {
         Observable
             .combineLatest(

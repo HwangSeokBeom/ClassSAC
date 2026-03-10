@@ -20,7 +20,7 @@ struct CourseDTO: Decodable {
     let salePrice: Int?
     let imageURL: String?
     let imageURLs: [String]?
-    let createdAt: String
+    let createdAt: String?
     let isLiked: Bool
     let creator: CourseCreatorDTO
 

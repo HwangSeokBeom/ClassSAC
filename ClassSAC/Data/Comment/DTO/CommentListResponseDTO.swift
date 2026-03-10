@@ -14,7 +14,7 @@ struct CommentListResponseDTO: Decodable {
 struct CommentDTO: Decodable {
     let commentID: String
     let content: String
-    let createdAt: String
+    let createdAt: String?
     let creator: CommentCreatorDTO
 
     enum CodingKeys: String, CodingKey {

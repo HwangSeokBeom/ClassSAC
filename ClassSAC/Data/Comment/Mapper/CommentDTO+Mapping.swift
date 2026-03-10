@@ -14,7 +14,7 @@ extension CommentDTO {
             id: commentID,
             courseID: courseID,
             content: content,
-            createdAt: DateFormatterManager.iso8601.date(from: createdAt),
+            createdAt: DateParser.parseOptionalISO8601(createdAt),
             writer: CommentWriter(
                 userID: creator.userID,
                 nickname: creator.nick,
