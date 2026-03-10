@@ -35,6 +35,8 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
     func start() -> UITabBarController {
         let mainTabBarController = MainTabBarController()
 
+        configureNavigationControllers()
+
         let courseListViewController = courseSceneDIContainer.makeCourseListViewController(
             courseFlowCoordinator: self
         )
@@ -83,6 +85,7 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
             let notificationsViewController = UIViewController()
             notificationsViewController.view.backgroundColor = AppColor.bgPrimary
             notificationsViewController.title = "알림"
+            notificationsViewController.hidesBottomBarWhenPushed = true
 
             viewController.navigationController?.pushViewController(
                 notificationsViewController,
@@ -93,6 +96,7 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
             let profileViewController = courseSceneDIContainer.makeProfileViewController(
                 courseFlowCoordinator: self
             )
+            profileViewController.hidesBottomBarWhenPushed = true
 
             viewController.navigationController?.pushViewController(
                 profileViewController,
@@ -104,6 +108,7 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
                 courseID: courseID,
                 courseFlowCoordinator: self
             )
+            courseDetailViewController.hidesBottomBarWhenPushed = true
 
             viewController.navigationController?.pushViewController(
                 courseDetailViewController,
@@ -119,6 +124,7 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
                 courseID: courseID,
                 courseFlowCoordinator: self
             )
+            courseDetailViewController.hidesBottomBarWhenPushed = true
 
             viewController.navigationController?.pushViewController(
                 courseDetailViewController,
@@ -136,6 +142,7 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
                 categoryTitle: categoryTitle,
                 courseFlowCoordinator: self
             )
+            commentListViewController.hidesBottomBarWhenPushed = true
 
             viewController.navigationController?.pushViewController(
                 commentListViewController,
@@ -150,6 +157,7 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
             let commentEditorViewController = courseSceneDIContainer.makeCommentEditorViewController(
                 context: context
             )
+            commentEditorViewController.modalPresentationStyle = .fullScreen
 
             viewController.present(commentEditorViewController, animated: true)
         }
@@ -157,5 +165,19 @@ final class CourseFlowCoordinator: CourseFlowCoordinating {
 
     func requestLogout() {
         onLogoutRequested?()
+    }
+}
+
+private extension CourseFlowCoordinator {
+
+    func configureNavigationControllers() {
+        [
+            listNavigationController,
+            searchNavigationController,
+            favoriteNavigationController
+        ].forEach { navigationController in
+            navigationController.setNavigationBarHidden(true, animated: false)
+            navigationController.navigationBar.isHidden = true
+        }
     }
 }

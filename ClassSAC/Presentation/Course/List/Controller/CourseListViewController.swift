@@ -44,11 +44,6 @@ final class CourseListViewController: UIViewController {
         view = rootView
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: false)
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         bind()

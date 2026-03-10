@@ -15,6 +15,7 @@ final class CourseDetailViewModel {
         let viewDidLoad: Observable<Void>
         let didTapLikeButton: Observable<Void>
         let didTapMoreCommentsButton: Observable<Void>
+        let didReceiveCommentDidChangeNotification: Observable<Void>
     }
 
     struct Output {
@@ -121,19 +122,22 @@ private extension CourseDetailViewModel {
     }
 
     func bindFetchComments(input: Input) {
-        input.viewDidLoad
-            .flatMapLatest { [weak self] _ -> Observable<[Comment]> in
-                guard let self else { return .empty() }
+        Observable.merge(
+            input.viewDidLoad,
+            input.didReceiveCommentDidChangeNotification
+        )
+        .flatMapLatest { [weak self] _ -> Observable<[Comment]> in
+            guard let self else { return .empty() }
 
-                return self.fetchCommentsUseCase.execute(courseID: self.courseID)
-                    .asObservable()
-                    .do(onError: { [weak self] error in
-                        self?.emitCourseError(from: error)
-                    })
-                    .catchAndReturn([])
-            }
-            .bind(to: commentsRelay)
-            .disposed(by: disposeBag)
+            return self.fetchCommentsUseCase.execute(courseID: self.courseID)
+                .asObservable()
+                .do(onError: { [weak self] error in
+                    self?.emitCourseError(from: error)
+                })
+                .catchAndReturn([])
+        }
+        .bind(to: commentsRelay)
+        .disposed(by: disposeBag)
     }
 
     func bindLikeAction(input: Input) {

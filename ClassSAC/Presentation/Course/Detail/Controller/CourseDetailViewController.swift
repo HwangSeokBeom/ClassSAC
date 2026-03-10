@@ -42,20 +42,20 @@ final class CourseDetailViewController: UIViewController {
         super.viewDidLoad()
         bind()
     }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: false)
-    }
 }
 
 private extension CourseDetailViewController {
 
     func bind() {
+        let commentDidChangeNotification = NotificationCenter.default.rx
+            .notification(.commentDidChange)
+            .map { _ in }
+
         let input = CourseDetailViewModel.Input(
             viewDidLoad: Observable.just(()),
             didTapLikeButton: rootView.likeButton.rx.tap.asObservable(),
-            didTapMoreCommentsButton: rootView.moreCommentsButton.rx.tap.asObservable()
+            didTapMoreCommentsButton: rootView.moreCommentsButton.rx.tap.asObservable(),
+            didReceiveCommentDidChangeNotification: commentDidChangeNotification
         )
 
         let output = viewModel.transform(input: input)

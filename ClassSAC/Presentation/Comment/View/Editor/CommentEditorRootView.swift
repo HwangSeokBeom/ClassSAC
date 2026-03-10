@@ -212,7 +212,7 @@ final class CommentEditorRootView: BaseRootView {
     }
 
     override func configureView() {
-        backgroundColor = .clear
+        backgroundColor = AppColor.bgPrimary
         dimmedBackgroundView.backgroundColor = UIColor.black.withAlphaComponent(0.06)
     }
 
