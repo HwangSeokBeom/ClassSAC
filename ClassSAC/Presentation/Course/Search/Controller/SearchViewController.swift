@@ -73,7 +73,7 @@ private extension SearchViewController {
         let output = viewModel.transform(input: input)
 
         bindSearchBar()
-        bindDismissKeyboard()
+        enableKeyboardDismissGesture()
         bindState(output)
         bindCourseCollectionView(output)
         bindNavigation(output)
@@ -141,19 +141,6 @@ private extension SearchViewController {
         output.showError
             .emit(with: self) { owner, error in
                 owner.showAlert(message: error.userMessage)
-            }
-            .disposed(by: disposeBag)
-    }
-    
-    func bindDismissKeyboard() {
-        let tapGestureRecognizer = UITapGestureRecognizer()
-        tapGestureRecognizer.cancelsTouchesInView = false
-
-        view.addGestureRecognizer(tapGestureRecognizer)
-
-        tapGestureRecognizer.rx.event
-            .bind(with: self) { owner, _ in
-                owner.view.endEditing(true)
             }
             .disposed(by: disposeBag)
     }
