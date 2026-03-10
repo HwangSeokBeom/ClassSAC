@@ -59,7 +59,6 @@ final class CommentListViewModel {
     }
 
     func transform(input: Input) -> Output {
-
         let routeRelay = PublishRelay<CommentListRoute>()
         let showDeleteAlertRelay = PublishRelay<CommentListAlert>()
         let showErrorMessageRelay = PublishRelay<String>()
@@ -111,7 +110,8 @@ private extension CommentListViewModel {
         from error: Error,
         to relay: PublishRelay<String>
     ) {
-        relay.accept(mapCommentError(error).userMessage)
+        let mappedError = mapCommentError(error)
+        relay.accept(mappedError.userMessage)
     }
 
     func makeCommentEditorContext(mode: CommentEditorMode) -> CommentEditorContext {
@@ -169,11 +169,11 @@ private extension CommentListViewModel {
             .map { [weak self] _ -> CommentListRoute? in
                 guard let self else { return nil }
 
-                return .commentEditor(
-                    context: self.makeCommentEditorContext(
-                        mode: .create(courseID: self.courseID)
-                    )
+                let context = self.makeCommentEditorContext(
+                    mode: CommentEditorMode.create(courseID: self.courseID)
                 )
+
+                return .commentEditor(context: context)
             }
             .compactMap { $0 }
             .bind(to: routeRelay)
@@ -197,13 +197,11 @@ private extension CommentListViewModel {
                     return
                 }
 
-                routeRelay.accept(
-                    .commentEditor(
-                        context: owner.makeCommentEditorContext(
-                            mode: .edit(comment: comment)
-                        )
-                    )
+                let context = owner.makeCommentEditorContext(
+                    mode: CommentEditorMode.edit(comment: comment)
                 )
+
+                routeRelay.accept(.commentEditor(context: context))
             }
             .disposed(by: disposeBag)
     }
@@ -230,7 +228,7 @@ private extension CommentListViewModel {
             .do(onNext: { [weak self] _ in
                 self?.isLoadingRelay.accept(true)
             })
-            .flatMapLatest { [weak self] commentID -> Observable<Void> in
+            .flatMapLatest { [weak self] commentID -> Observable<Event<Void>> in
                 guard let self else { return .empty() }
 
                 return self.deleteCommentUseCase.execute(
@@ -238,21 +236,22 @@ private extension CommentListViewModel {
                     commentID: commentID
                 )
                 .asObservable()
-                .do(
-                    onNext: { [weak self] _ in
-                        self?.isLoadingRelay.accept(false)
-                    },
-                    onError: { [weak self] error in
-                        self?.isLoadingRelay.accept(false)
-                        guard let self else { return }
-                        self.emitErrorMessage(from: error, to: showErrorMessageRelay)
-                    }
-                )
-                .catchAndReturn(())
+                .materialize()
             }
-            .subscribe(with: self) { owner, _ in
-                NotificationCenter.default.post(name: .commentDidChange, object: nil)
-                owner.deleteTargetCommentIDRelay.accept(nil)
+            .subscribe(with: self) { owner, event in
+                owner.isLoadingRelay.accept(false)
+
+                switch event {
+                case .next:
+                    NotificationCenter.default.post(name: .commentDidChange, object: nil)
+                    owner.deleteTargetCommentIDRelay.accept(nil)
+
+                case .error(let error):
+                    owner.emitErrorMessage(from: error, to: showErrorMessageRelay)
+
+                case .completed:
+                    break
+                }
             }
             .disposed(by: disposeBag)
     }

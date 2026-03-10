@@ -86,21 +86,14 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
 
         session.request(urlRequest)
             .validate(statusCode: 200..<300)
-            .responseData { [weak self] response in
-                guard let self else {
-                    completion(.failure(.deallocated))
-                    return
-                }
-
-                switch response.result {
-                case .success:
-                    completion(.success(()))
-
-                case .failure(let afError):
+            .response { [self] response in
+                let statusCode = response.response?.statusCode ?? -1
+                let responseBody = response.data.flatMap { String(data: $0, encoding: .utf8) } ?? "nil"
+                
+                if let afError = response.error {
                     let message = Self.extractServerMessage(from: response.data)
-
                     if let statusCode = response.response?.statusCode {
-                        self.handleAuthorizationIfNeeded(
+                        handleAuthorizationIfNeeded(
                             statusCode: statusCode,
                             endpoint: endpoint
                         )
@@ -108,7 +101,10 @@ final class ClassSACHTTPClient: ClassSACHTTPClienting {
                     } else {
                         completion(.failure(.underlying(afError)))
                     }
+
+                    return
                 }
+                completion(.success(()))
             }
     }
 
