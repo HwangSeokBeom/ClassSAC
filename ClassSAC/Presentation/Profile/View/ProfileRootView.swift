@@ -37,6 +37,7 @@ final class ProfileRootView: BaseRootView {
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 44
         imageView.image = AppIcon.person3.image
+        imageView.tintColor = AppColor.textTertiary
         return imageView
     }()
 

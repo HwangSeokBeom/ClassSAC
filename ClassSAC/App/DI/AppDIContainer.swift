@@ -23,6 +23,17 @@ final class AppDIContainer {
         accessTokenStore
     }
 
+    func makeCurrentUserStore() -> CurrentUserStoring {
+        currentUserStore
+    }
+
+    func makeSessionRepository() -> SessionRepository {
+        DefaultSessionRepository(
+            accessTokenStore: accessTokenStore,
+            currentUserStore: currentUserStore
+        )
+    }
+
     func makeAuthSceneDIContainer() -> AuthSceneDIContainer {
         AuthSceneDIContainer(
             httpClient: httpClient,

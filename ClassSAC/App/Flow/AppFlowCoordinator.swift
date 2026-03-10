@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import RxSwift
 
 final class AppFlowCoordinator {
 
@@ -14,6 +15,8 @@ final class AppFlowCoordinator {
 
     private var authFlowCoordinator: AuthFlowCoordinator?
     private var courseFlowCoordinator: CourseFlowCoordinator?
+
+    private let disposeBag = DisposeBag()
 
     init(
         navigationController: UINavigationController,
@@ -36,19 +39,25 @@ final class AppFlowCoordinator {
     }
 
     private func handleSessionExpired() {
-        let accessTokenStore = appDIContainer.makeAccessTokenStore()
-        accessTokenStore.clear()
+        let sessionRepository = appDIContainer.makeSessionRepository()
 
-        courseFlowCoordinator = nil
-        showAuthFlow()
+        sessionRepository.clearSession()
+            .subscribe(onCompleted: { [weak self] in
+                self?.courseFlowCoordinator = nil
+                self?.showAuthFlow()
+            })
+            .disposed(by: disposeBag)
     }
 
     private func handleLogoutRequested() {
-        let accessTokenStore = appDIContainer.makeAccessTokenStore()
-        accessTokenStore.clear()
+        let sessionRepository = appDIContainer.makeSessionRepository()
 
-        courseFlowCoordinator = nil
-        showAuthFlow()
+        sessionRepository.clearSession()
+            .subscribe(onCompleted: { [weak self] in
+                self?.courseFlowCoordinator = nil
+                self?.showAuthFlow()
+            })
+            .disposed(by: disposeBag)
     }
 
     private func showAuthFlow() {
