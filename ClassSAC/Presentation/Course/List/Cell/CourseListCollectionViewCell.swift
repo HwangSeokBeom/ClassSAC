@@ -65,6 +65,9 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         label.font = AppFont.body.font
         label.textColor = AppColor.textTertiary
         label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.85
         return label
     }()
 
@@ -73,6 +76,9 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         label.font = AppFont.title.font
         label.textColor = AppColor.textPrimary
         label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.82
         return label
     }()
 
@@ -87,7 +93,8 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
     private let bottomPriceStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .horizontal
-        stackView.alignment = .center
+        stackView.alignment = .firstBaseline
+        stackView.distribution = .fill
         stackView.spacing = 8
         return stackView
     }()
@@ -175,12 +182,14 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
 
         originalPriceLabel.snp.makeConstraints { make in
             make.top.equalTo(descriptionLabel.snp.bottom).offset(10)
-            make.leading.trailing.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.trailing.lessThanOrEqualToSuperview()
         }
 
         bottomPriceStackView.snp.makeConstraints { make in
             make.top.equalTo(originalPriceLabel.snp.bottom).offset(4)
-            make.leading.trailing.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.trailing.lessThanOrEqualToSuperview()
             make.bottom.lessThanOrEqualToSuperview()
         }
     }
@@ -189,8 +198,13 @@ final class CourseListCollectionViewCell: UICollectionViewCell {
         backgroundColor = .clear
         contentView.backgroundColor = .clear
 
+        salePriceLabel.setContentHuggingPriority(.required, for: .horizontal)
         salePriceLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
-        discountPercentLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        discountPercentLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        discountPercentLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+
+        originalPriceLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
     }
 
     private func configureAction() {
