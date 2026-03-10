@@ -111,8 +111,8 @@ private extension SearchViewController {
             .map(\.courses)
             .drive(
                 rootView.courseCollectionView.rx.items(
-                    cellIdentifier: CourseListCollectionViewCell.identifier,
-                    cellType: CourseListCollectionViewCell.self
+                    cellIdentifier: SearchCourseCollectionViewCell.identifier,
+                    cellType: SearchCourseCollectionViewCell.self
                 )
             ) { [weak self] _, cellViewModel, cell in
                 guard let self else { return }
@@ -165,7 +165,7 @@ extension SearchViewController: UICollectionViewDelegateFlowLayout {
         let columnCount = searchColumnCount()
         let totalSpacing = interItemSpacing * CGFloat(columnCount - 1)
         let itemWidth = floor((sectionWidth - totalSpacing) / CGFloat(columnCount))
-        let itemHeight = itemWidth + searchCellExtraHeight()
+        let itemHeight = itemWidth * 0.58 + searchCellExtraHeight()
 
         return CGSize(width: itemWidth, height: itemHeight)
     }
@@ -180,10 +180,10 @@ extension SearchViewController: UICollectionViewDelegateFlowLayout {
 
     private func searchCellExtraHeight() -> CGFloat {
         if traitCollection.userInterfaceIdiom == .pad {
-            return 132
+            return 110
         }
 
-        return 120
+        return 96
     }
 
     func collectionView(

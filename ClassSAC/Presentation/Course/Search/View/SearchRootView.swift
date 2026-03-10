@@ -87,5 +87,10 @@ final class SearchRootView: BaseRootView {
 
     override func configureView() {
         backgroundColor = AppColor.bgPrimary
+        
+        courseCollectionView.register(
+            SearchCourseCollectionViewCell.self,
+            forCellWithReuseIdentifier: SearchCourseCollectionViewCell.identifier
+        )
     }
 }
